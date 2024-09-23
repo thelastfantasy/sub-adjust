@@ -13,6 +13,6 @@ This is a GUI tool for adjust subtitle timestamps written in Python. It can be u
     - suse: `sudo zypper install python3 python3-pip`
     - alpine: `sudo apk add python3 py3-pip`
 2. Just run the start script
-  - Windows: `start-windows.bat`
+  - Windows: `start-windows.bat`，可以双击bat运行
   - Linux: `./start-linux.sh`
 3. Check the GUI for the instructions
