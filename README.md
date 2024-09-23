@@ -5,7 +5,7 @@ This is a GUI tool for adjust subtitle timestamps written in Python. It can be u
 # Requirements & Usage
 1. Install Python 3, add python to PATH, and install pip，记得装Python 3，还有添加环境变量，可能也要装pip。
   - Windows: https://www.python.org/downloads/windows/
-  - Linux: 
+  - Linux: （下面是Copilot生成的，错了概不负责，根据自己的包管理器找正确的Python安装命令）
     - debian: `sudo apt-get install python3 python3-pip`
     - fedora: `sudo dnf install python3 python3-pip`
     - arch: `sudo pacman -S python python-pip`
