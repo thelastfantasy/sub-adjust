@@ -1,8 +1,9 @@
 # About
 This is a GUI tool for adjust subtitle timestamps written in Python. It can be used to adjust timestamp UTF-8 encoded .srt, .ass and .ssa subtitle files.
+就是个字幕时间戳批量调整工具。
 
 # Requirements & Usage
-1. Install Python 3, add python to PATH, and install pip
+1. Install Python 3, add python to PATH, and install pip，记得装Python 3，还有添加环境变量，可能也要装pip。
   - Windows: https://www.python.org/downloads/windows/
   - Linux: 
     - debian: `sudo apt-get install python3 python3-pip`
