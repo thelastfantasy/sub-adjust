@@ -1,6 +1,7 @@
 import os
+import platform
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import (messagebox, scrolledtext)
 import webbrowser
 import winsound
 
@@ -126,9 +127,23 @@ def center_window(window):
     y = screen_height // 2 - size[1] // 2
     window.geometry(f"{size[0]}x{size[1]}+{x}+{y}")
 
+def play_system_sound():
+    system = platform.system()
+    if system == "Windows":
+        winsound.MessageBeep(winsound.MB_OK)
+    elif system == "Linux":
+        # 在这里添加适用于 Linux 的音效播放代码
+        pass
+    elif system == "Darwin":  # macOS
+        # 在这里添加适用于 macOS 的音效播放代码
+        pass
+    else:
+        # 不支持的操作系统
+        pass
+
 def custom_messagebox(root, message):
     # 播放系统完成音效
-    winsound.MessageBeep(winsound.MB_OK)
+    play_system_sound()
 
     # 创建新的顶层窗口
     custom_box = tk.Toplevel(root)
@@ -151,6 +166,27 @@ def custom_messagebox(root, message):
     custom_box.transient(root)  # 确保对话框在主窗口之上
     custom_box.grab_set()  # 阻止用户与其他窗口交互
     root.wait_window(custom_box)  # 直到对话框关闭
+
+def display_errors(root, errors):
+    # 播放系统完成音效
+    play_system_sound()
+
+    # 创建一个新的顶层窗口
+    error_window = tk.Toplevel(root)
+    error_window.title("错误信息")
+
+    # 创建一个滚动文本框用于显示错误信息
+    error_text = scrolledtext.ScrolledText(error_window, wrap=tk.WORD, state='disabled')
+    error_text.pack(expand=True, fill='both')
+
+    # 插入错误信息
+    error_text.config(state='normal')
+    error_text.insert(tk.END, errors)
+    error_text.config(state='disabled')
+
+    # 将结果窗口置于屏幕中央
+    center_window(error_window)
+
 
 def shift_times_in_directory(directory, shift_value, shift_direction, layer_numbers):
     adjusted_shift_value = -shift_value if shift_direction == "advance" else shift_value
@@ -187,9 +223,16 @@ def shift_times_in_directory(directory, shift_value, shift_direction, layer_numb
 
     if failure_count > 0:
         result_message += "\n失败原因:\n" + "\n".join(failure_reasons)
+        # 使用自定义文本组件显示结果
+        display_errors(root, result_message)
+    else:
+        # 所有文件处理成功，使用原本的自定义messagebox，并显示处理数量
+        result_message = (
+            f"共处理 {total_files} 个文件。\n"
+            f"成功处理 {success_count} 个文件。\n"
+        )
+        custom_messagebox(root, result_message)
 
-    # 使用自定义消息框
-    custom_messagebox(root, result_message)
 
 # 打开默认邮件客户端发送邮件
 def open_mail(event=None):
