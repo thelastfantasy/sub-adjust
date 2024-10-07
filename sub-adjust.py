@@ -18,7 +18,7 @@ Usage:
   sub-adjust
 
 Options:
-  -t --offset <subtitle_shift_seconds>    字幕偏移量，支持小数、负数、正数，负数为提前，正数为延后。此参数不存在时将不会进入命令行模式，而是进入图形界面
+  -t --offset <subtitle_shift_seconds>    字幕偏移量（单位：秒，1s = 1000ms），支持小数、负数、正数，负数为提前，正数为延后。此参数不存在时将不会进入命令行模式，而是进入图形界面
   -i --file <inputfile>                   输入字幕路径，同时也是输出路径，可以是相对路径或绝对路径。不存在的话会在当前活动目录下读取
   --files <inputfiles>...                 多文件模式，接收多个路径，--file 参数存在时会忽略 --files 参数
   --layers <layer_numbers>                可选参数，将时间调整仅应用到此处设置的Layer中。默认为 all
