@@ -4,6 +4,39 @@ import tkinter as tk
 from tkinter import (messagebox, scrolledtext)
 import webbrowser
 import winsound
+from docopt import docopt
+
+__version__ = 'sub-adjust v1.2.0'
+
+USAGE = f"""
+{__version__}
+
+Usage:
+  sub-adjust --offset <subtitle_shift_seconds> [--file <inputfile>] [--layers <layer_numbers>]
+  sub-adjust --files <inputfiles>... [--layers <layer_numbers>]
+  sub-adjust --version
+  sub-adjust
+
+Options:
+  -t --offset <subtitle_shift_seconds>    字幕偏移量，支持小数、负数、正数，负数为提前，正数为延后。此参数不存在时将不会进入命令行模式，而是进入图形界面
+  -i --file <inputfile>                   输入字幕路径，同时也是输出路径，可以是相对路径或绝对路径。不存在的话会在当前活动目录下读取
+  --files <inputfiles>...                 多文件模式，接收多个路径，--file 参数存在时会忽略 --files 参数
+  --layers <layer_numbers>                可选参数，将时间调整仅应用到此处设置的Layer中。默认为 all
+  --version                               显示版本信息
+  -h --help                               显示帮助信息
+
+Examples:
+  # 将字幕提前2.5秒
+  python sub-adjust.py --offset -2.5 --file example.srt
+  
+  # 将多个字幕文件延后3秒
+  python sub-adjust.py --offset 3 --files "file1.ass" "file2.srt"
+  
+  # 显示版本信息
+  python sub-adjust.py --version
+"""
+
+
 
 # 时间和文件处理函数
 def time_to_ms(h, m, s, cs):
@@ -14,17 +47,7 @@ def ms_to_time(ms):
     m = (ms % 3600000) // 60000
     s = (ms % 60000) // 1000
     cs = (ms % 1000) // 10
-
-    # 将浮点数转为整数
-    h = int(h)
-    m = int(m)
-    s = int(s)
-    cs = int(cs)
-
-    # 正确格式化时间字符串
-    formatted_time = f"{h}:{m:02}:{s:02}.{cs:02}"
-    
-    return formatted_time
+    return f"{int(h)}:{int(m):02}:{int(s):02}.{int(cs):02}"
 
 def srt_time_to_ms(h, m, s, ms):
     return max(0, (int(h) * 3600 + int(m) * 60 + int(s)) * 1000 + int(ms))
@@ -34,8 +57,6 @@ def ms_to_srt_time(ms):
     m = int((ms % 3600000) // 60000)
     s = int((ms % 60000) // 1000)
     ms = int(ms % 1000)
-
-    # 返回格式化为 hh:mm:ss,ms 格式的时间字符串
     return f"{h:02}:{m:02}:{s:02},{ms:03}"
 
 def process_srt_file(filepath, adjusted_shift_value):
@@ -53,11 +74,9 @@ def process_srt_file(filepath, adjusted_shift_value):
                     start_ms = srt_time_to_ms(h1, m1, s1, ms1) + adjusted_shift_value
                     end_ms = srt_time_to_ms(h2, m2, s2, ms2) + adjusted_shift_value
 
-                    # 确保时间戳不会变成负数
                     start_ms = max(0, start_ms)
                     end_ms = max(0, end_ms)
 
-                    # 将时间转换回 SRT 格式
                     new_start_time = ms_to_srt_time(start_ms)
                     new_end_time = ms_to_srt_time(end_ms)
 
@@ -86,7 +105,7 @@ def process_ass_ssa_file(filepath, adjusted_shift_value, layers):
         with open(filepath, 'w', encoding='utf-8') as outfile:
             for line in lines:
                 if line.startswith("Dialogue: "):
-                    parts = line.split(",", 9)  # 只分割前9个字段，保留文本内容不变
+                    parts = line.split(",", 9)
                     layer = int(parts[0].split(":")[1])
                     if is_layer_included(layer, layers):
                         start_time = parts[1]
@@ -104,7 +123,6 @@ def process_ass_ssa_file(filepath, adjusted_shift_value, layers):
                         start_ms = time_to_ms(h1, m1, s1, cs1) + adjusted_shift_value
                         end_ms = time_to_ms(h2, m2, s2, cs2) + adjusted_shift_value
 
-                        # 确保时间戳不会变成负数
                         start_ms = max(0, start_ms)
                         end_ms = max(0, end_ms)
 
@@ -132,63 +150,38 @@ def play_system_sound():
     if system == "Windows":
         winsound.MessageBeep(winsound.MB_OK)
     elif system == "Linux":
-        # 在这里添加适用于 Linux 的音效播放代码
         pass
-    elif system == "Darwin":  # macOS
-        # 在这里添加适用于 macOS 的音效播放代码
-        pass
-    else:
-        # 不支持的操作系统
+    elif system == "Darwin":
         pass
 
 def custom_messagebox(root, message):
-    # 播放系统完成音效
     play_system_sound()
-
-    # 创建新的顶层窗口
     custom_box = tk.Toplevel(root)
     custom_box.title("处理结果")
-
-    # 显示消息
     tk.Label(custom_box, text=message, wraplength=300, justify=tk.LEFT).pack(padx=20, pady=20)
-
-    # 创建按钮容器
     button_frame = tk.Frame(custom_box)
     button_frame.pack(padx=10, pady=10)
-
-    # 确定按钮
     tk.Button(button_frame, text="确定", command=custom_box.destroy).pack(side=tk.LEFT, padx=5)
-
-    # 退出按钮
     tk.Button(button_frame, text="退出", command=root.destroy).pack(side=tk.LEFT, padx=5)
-
-    center_window(custom_box)  # 将结果窗口置于屏幕中央
-    custom_box.transient(root)  # 确保对话框在主窗口之上
-    custom_box.grab_set()  # 阻止用户与其他窗口交互
-    root.wait_window(custom_box)  # 直到对话框关闭
+    center_window(custom_box)
+    custom_box.transient(root)
+    custom_box.grab_set()
+    root.wait_window(custom_box)
 
 def display_errors(root, errors):
-    # 播放系统完成音效
     play_system_sound()
-
-    # 创建一个新的顶层窗口
     error_window = tk.Toplevel(root)
     error_window.title("错误信息")
-
-    # 创建一个滚动文本框用于显示错误信息
     error_text = scrolledtext.ScrolledText(error_window, wrap=tk.WORD, state='disabled')
     error_text.pack(expand=True, fill='both')
-
-    # 插入错误信息
     error_text.config(state='normal')
     error_text.insert(tk.END, errors)
     error_text.config(state='disabled')
-
-    # 将结果窗口置于屏幕中央
     center_window(error_window)
 
-
 def shift_times_in_directory(directory, shift_value, shift_direction, layer_numbers):
+    if shift_direction is None:
+        shift_direction = "delay"
     adjusted_shift_value = -shift_value if shift_direction == "advance" else shift_value
     layers = parse_layers(layer_numbers)
 
@@ -223,26 +216,34 @@ def shift_times_in_directory(directory, shift_value, shift_direction, layer_numb
 
     if failure_count > 0:
         result_message += "\n失败原因:\n" + "\n".join(failure_reasons)
-        # 使用自定义文本组件显示结果
         display_errors(root, result_message)
     else:
-        # 所有文件处理成功，使用原本的自定义messagebox，并显示处理数量
-        result_message = (
-            f"共处理 {total_files} 个文件。\n"
-            f"成功处理 {success_count} 个文件。\n"
-        )
         custom_messagebox(root, result_message)
 
-
-# 打开默认邮件客户端发送邮件
 def open_mail(event=None):
     webbrowser.open("mailto:i@kayanoai.net")
 
+def show_usage(root):
+    usage_window = tk.Toplevel(root)
+    usage_window.title("命令行帮助")
+
+    # 创建一个滚动文本框用于显示USAGE内容
+    usage_text = scrolledtext.ScrolledText(usage_window, wrap=tk.WORD, state='disabled')
+    usage_text.pack(expand=True, fill='both')
+
+    # 插入USAGE信息
+    usage_text.config(state='normal')
+    usage_text.insert(tk.END, USAGE)
+    usage_text.config(state='disabled')
+
+    # 将结果窗口置于屏幕中央
+    center_window(usage_window)
+
 # GUI部分
-def main():
+def start_ui():
     global root
     root = tk.Tk()
-    root.title("字幕时间轴调整")
+    root.title(f"{__version__} - 字幕时间轴调整")
 
     # 功能详细说明
     explanation = (
@@ -300,8 +301,49 @@ def main():
     contact_label.bind("<Enter>", lambda e: contact_label.config(fg="red"))
     contact_label.bind("<Leave>", lambda e: contact_label.config(fg="blue"))
 
+    # 添加按钮，显示USAGE
+    usage_button = tk.Button(root, text="命令行帮助", command=lambda: show_usage(root))
+    usage_button.grid(row=6, column=2, padx=10, pady=10, sticky=tk.E)
+
     center_window(root)  # 将主窗口置于屏幕中央
     root.mainloop()
 
+def main():
+    # 使用 options_first=True 确保没有参数时不会直接触发 Usage 输出
+    args = docopt(USAGE, version=__version__, options_first=True)
+
+    input_file = args["--file"]
+    input_files = args["--files"]
+
+    # 如果用户请求版本信息，显示版本信息
+    if args["--version"]:
+        print(__version__)
+        return  # 退出程序，避免启动GUI
+
+    # 如果有offset参数，则执行命令行模式逻辑
+    elif args["--offset"]:
+        print("进入命令行模式...")
+        shift_value = float(args["--offset"]) * 1000
+        layer_numbers = args["--layers"]
+        if input_file:
+            if input_file.endswith(".ass") or input_file.endswith(".ssa"):
+                process_ass_ssa_file(input_file, shift_value, layer_numbers)
+            elif input_file.endswith(".srt"):
+                process_srt_file(input_file, shift_value)
+        elif input_files:
+            for filepath in input_files:
+                if filepath.endswith(".ass") or filepath.endswith(".ssa"):
+                    process_ass_ssa_file(filepath, shift_value, layer_numbers)
+                elif filepath.endswith(".srt"):
+                    process_srt_file(filepath, shift_value)
+        else:
+            shift_times_in_directory(os.getcwd(), shift_value, None, layer_numbers)
+
+    # 否则启动GUI（没有提供 --offset 或 --files 时）
+    else:
+        print("正在启动GUI...")
+        start_ui()
+
 if __name__ == "__main__":
     main()
+
