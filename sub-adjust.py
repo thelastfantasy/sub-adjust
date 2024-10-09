@@ -25,12 +25,23 @@ Options:
   --version                               显示版本信息
   -h --help                               显示帮助信息
 
-Examples:
+Examples (二进制版本):
+  # 将字幕提前2.5秒
+  sub-adjust --offset -2.5 --file example.ass
+  
+  # 将多个字幕文件延后3秒
+  sub-adjust --offset 3 --files "example.ass" "e:\sub-adjust\example.srt"
+  
+  # 显示版本信息
+  sub-adjust --version
+
+
+Examples (Python运行源码):
   # 将字幕提前2.5秒
   python sub-adjust.py --offset -2.5 --file example.ass
   
   # 将多个字幕文件延后3秒
-  python sub-adjust.py --offset 3 --files "file1.ass" "file2.srt"
+  python sub-adjust.py --offset 3 --files "example.ass" "e:\sub-adjust\example.srt"
   
   # 显示版本信息
   python sub-adjust.py --version
@@ -172,7 +183,7 @@ def display_errors(root, errors):
     play_system_sound()
     error_window = tk.Toplevel(root)
     error_window.title("错误信息")
-    error_text = scrolledtext.ScrolledText(error_window, wrap=tk.WORD, state='disabled')
+    error_text = scrolledtext.ScrolledText(error_window, wrap=tk.CHAR, state='disabled')
     error_text.pack(expand=True, fill='both')
     error_text.config(state='normal')
     error_text.insert(tk.END, errors)
@@ -228,7 +239,7 @@ def show_usage(root):
     usage_window.title("命令行帮助")
 
     # 创建一个滚动文本框用于显示USAGE内容
-    usage_text = scrolledtext.ScrolledText(usage_window, wrap=tk.WORD, state='disabled')
+    usage_text = scrolledtext.ScrolledText(usage_window, wrap=tk.CHAR, state='disabled')
     usage_text.pack(expand=True, fill='both')
 
     # 插入USAGE信息
@@ -250,13 +261,13 @@ def start_ui():
         "批量处理字幕时间轴程序\n\n"
         "该工具用于批量将当前目录中的所有ASS、SSA、SRT字幕文件的时间轴根据配置延迟或提前。\n\n"
         "使用方法：\n"
-        "1. 输入时间偏移量（秒），支持小数。例如，输入 '10.5' 表示延迟或提前10.5秒。\n"
-        "2. 选择调整方向。可以选择 '延后' 或 '提前'。\n"
-        "3. 输入层号（Layer编号, 可选）。留空或输入 'all' 表示对所有层进行调整。输入特定的层号（用逗号分隔）只对特定层进行调整。\n"
-        "4. 点击 '处理' 按钮，程序将处理当前目录中的所有 .ass、.ssa 和 .srt 文件，并根据配置调整字幕时间轴。\n\n"
+        "1.\u00A0输入时间偏移量（秒），支持小数。例如，输入\u00A0'10.5'\u00A0表示延迟或提前 10.5 秒。\n"
+        "2.\u00A0选择调整方向。可以选择 '延后' 或 '提前'。\n"
+        "3.\u00A0输入层号（Layer编号,\u00A0可选）。留空或输入\u00A0'all'\u00A0表示对所有层进行调整。输入特定的层号（用逗号分隔）只对特定层进行调整。\n"
+        "4.\u00A0点击 '处理' 按钮，程序将处理当前目录中的所有 .ass、.ssa 和 .srt 文件，并根据配置调整字幕时间轴。\n\n"
         "注意：\n"
-        "- 程序执行后会覆盖原始字幕文件，因此在运行程序之前建议备份文件。\n"
-        "- 本工具假设所有字幕文件均使用 UTF-8 编码格式。请确保文件编码正确，以避免处理错误。"
+        "-\u00A0程序执行后会覆盖原始字幕文件，因此在运行程序之前建议备份文件。\n"
+        "-\u00A0本工具假设所有字幕文件均使用\u00A0UTF-8\u00A0编码格式。请确保文件编码正确，以避免处理错误。"
     )
     tk.Label(root, text=explanation, wraplength=400, justify=tk.LEFT).grid(row=0, column=0, columnspan=3, padx=10, pady=10)
 
