@@ -6,65 +6,159 @@ on:
     branches:
       - main
 
+concurrency:
+  group: create-tag-and-release-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  create_tag_and_release:
+  # Job 1: Validate the PR and extract version
+  validate_and_tag:
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
+
+    outputs:
+      version: ${{ steps.validate_title.outputs.version }}
+
     steps:
-      # Checkout the repository
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Check if PR title matches vX.X.X format and extract version
       - name: Validate PR title and extract version
         id: validate_title
         run: |
           if [[ "${{ github.event.pull_request.title }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             version=$(echo "${{ github.event.pull_request.title }}" | grep -oE '^v[0-9]+\.[0-9]+\.[0-9]+')
-            echo "version=$version" >> $GITHUB_OUTPUT
+            echo "version=$version" >> "$GITHUB_OUTPUT"
           else
             echo "PR title does not match the required format (vX.X.X)."
-            echo "version=" >> $GITHUB_OUTPUT  # Setting version to empty
+            echo "version=" >> "$GITHUB_OUTPUT"  # Setting version to empty
             exit 0  # Exit normally
           fi
         shell: bash
 
-      # Create a tag using the extracted version, only if version is set
       - name: Create a tag
         if: ${{ steps.validate_title.outputs.version != '' }}
         run: |
           git tag ${{ steps.validate_title.outputs.version }}
           git push origin ${{ steps.validate_title.outputs.version }}
 
-      # Read the file list from PackageAssets.txt and zip the specified files into one archive
-      - name: Zip release files
-        if: ${{ steps.validate_title.outputs.version != '' }}
-        run: |
-          zip -r "sub-adjust_${{ steps.validate_title.outputs.version }}.zip" $(cat .github/workflows/PackageAssets.txt)
+  # Job 2: Compile using matrix for different platforms
+  compile:
+    needs: validate_and_tag
+    if: ${{ needs.validate_and_tag.outputs.version != '' }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            python-version: "3.x"
+          - os: windows-latest
+            python-version: "3.x"
+            architecture: "x64"
 
-      # Create a release and upload the zip file
-      - name: Create GitHub release
-        id: create_release
-        if: ${{ steps.validate_title.outputs.version != '' }}
-        uses: actions/create-release@latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v3
         with:
-          tag_name: ${{ steps.validate_title.outputs.version }}
-          release_name: ${{ steps.validate_title.outputs.version }}
+          python-version: ${{ matrix.python-version }}
+          architecture: ${{ matrix.architecture || '' }}
+
+      - name: Install pipreqs
+        run: |
+          pip install pipreqs
+
+      - name: Generate requirements.txt
+        run: |
+          pipreqs . --force
+
+      - name: Install Dependencies
+        run: |
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+
+      - name: Install PyInstaller
+        run: |
+          pip install pyinstaller
+
+      - name: Compile for ${{ matrix.os }}
+        run: |
+          pyinstaller --onefile sub-adjust.py
+          if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
+            mkdir -p build/linux
+            mv dist/sub-adjust build/linux/
+          else
+            mkdir -p build/windows
+            mv dist/sub-adjust.exe build/windows/
+          fi
+
+  # Job 3: Create release
+  create_release:
+    needs: [validate_and_tag, compile]
+    if: ${{ needs.validate_and_tag.outputs.version != '' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Zip compiled Linux binaries
+      - name: Zip Linux binaries
+        run: |
+          zip -r "sub-adjust-v${{ needs.validate_and_tag.outputs.version }}-linux-x64.zip" build/linux
+
+      # Zip compiled Windows binaries
+      - name: Zip Windows binaries
+        run: |
+          zip -r "sub-adjust-v${{ needs.validate_and_tag.outputs.version }}-win-x64.zip" build/windows
+
+      # Zip source code
+      - name: Zip source code
+        run: |
+          zip -r "sub-adjust-v${{ needs.validate_and_tag.outputs.version }}-source.zip" .
+
+      # Create GitHub release
+      - name: Create GitHub release
+        id: create_release_step
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ needs.validate_and_tag.outputs.version }}
+          release_name: Release ${{ needs.validate_and_tag.outputs.version }}
           body: |
-            Automatically created release for version ${{ steps.validate_title.outputs.version }}.
+            Automatically created release for version ${{ needs.validate_and_tag.outputs.version }}.
 
             ### PR Description:
             ${{ github.event.pull_request.body }}
           draft: false
           prerelease: false
-          commitish: ${{ github.sha }}
 
-      # Upload the zip file as the release asset
-      - name: Upload zip file to release
-        if: ${{ steps.validate_title.outputs.version != '' }}
+      # Upload Linux binaries zip file to release
+      - name: Upload Linux binaries zip file to release
         uses: actions/upload-release-asset@v1
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./sub-adjust_${{ steps.validate_title.outputs.version }}.zip
-          asset_name: sub-adjust_${{ steps.validate_title.outputs.version }}.zip
+          upload_url: ${{ steps.create_release_step.outputs.upload_url }}
+          asset_path: ./sub-adjust-v${{ needs.validate_and_tag.outputs.version }}-linux-x64.zip
+          asset_name: sub-adjust-v${{ needs.validate_and_tag.outputs.version }}-linux-x64.zip
+          asset_content_type: application/zip
+
+      # Upload Windows binaries zip file to release
+      - name: Upload Windows binaries zip file to release
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release_step.outputs.upload_url }}
+          asset_path: ./sub-adjust-v${{ needs.validate_and_tag.outputs.version }}-win-x64.zip
+          asset_name: sub-adjust-v${{ needs.validate_and_tag.outputs.version }}-win-x64.zip
+          asset_content_type: application/zip
+
+      # Upload source zip file to release
+      - name: Upload source zip file to release
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release_step.outputs.upload_url }}
+          asset_path: ./sub-adjust-v${{ needs.validate_and_tag.outputs.version }}-source.zip
+          asset_name: sub-adjust-v${{ needs.validate_and_tag.outputs.version }}-source.zip
           asset_content_type: application/zip
