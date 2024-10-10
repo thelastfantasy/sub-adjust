@@ -1,4 +1,5 @@
 import os
+import re
 import platform
 import tkinter as tk
 from tkinter import (messagebox, scrolledtext)
@@ -108,6 +109,7 @@ def is_layer_included(layer, layers):
         return True
     return layer in layers
 
+
 def process_ass_ssa_file(filepath, adjusted_shift_value, layers):
     try:
         with open(filepath, 'r', encoding='utf-8') as infile:
@@ -117,7 +119,16 @@ def process_ass_ssa_file(filepath, adjusted_shift_value, layers):
             for line in lines:
                 if line.startswith("Dialogue: "):
                     parts = line.split(",", 9)
-                    layer = int(parts[0].split(":")[1])
+                    
+                    # 使用正则表达式处理SSA和ASS的layer部分
+                    layer_match = re.match(r"Dialogue: (Marked=)?(\d+)", parts[0])
+                    if layer_match:
+                        layer = int(layer_match.group(2))
+                    else:
+                        print(f"Error parsing layer in line: {line}")
+                        continue
+                    
+                    # 判断当前层是否在处理范围内
                     if is_layer_included(layer, layers):
                         start_time = parts[1]
                         end_time = parts[2]
@@ -146,6 +157,7 @@ def process_ass_ssa_file(filepath, adjusted_shift_value, layers):
     except Exception as e:
         print(f"Error processing file {filepath}: {str(e)}")
         return False, str(e)
+
 
 def center_window(window):
     window.update_idletasks()
