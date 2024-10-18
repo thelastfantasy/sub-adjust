@@ -9,17 +9,11 @@ if %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 
-REM Check if docopt is installed
-python -m pip show docopt >nul 2>&1
+REM Try install deps from requirements.txt
+pip install -r requirements.txt
 if %ERRORLEVEL% NEQ 0 (
-    echo docopt未安装，正在尝试安装...
-    python -m pip install docopt
-    if %ERRORLEVEL% NEQ 0 (
-        echo docopt安装失败，请检查网络或pip配置。
-        exit /b 1
-    )
-) else (
-    echo docopt已安装，跳过安装步骤。
+    echo 依赖项安装失败，请检查错误信息并手动安装依赖项。
+    exit /b 1
 )
 
 echo 所有依赖项已满足，可以运行程序。

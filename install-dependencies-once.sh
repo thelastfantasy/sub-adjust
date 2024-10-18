@@ -18,16 +18,17 @@ if ! command -v pip3 &> /dev/null; then
     fi
 fi
 
-# 检查是否已安装 docopt
-if ! python3 -m pip show docopt &> /dev/null; then
-    echo "docopt 未安装，正在尝试安装..."
-    pip3 install docopt
+# Try install deps from requirements.txt
+if [ -f requirements.txt ]; then
+    echo "正在安装依赖项..."
+    pip3 install -r requirements.txt
     if [ $? -ne 0 ]; then
-        echo "docopt 安装失败，请检查网络或 pip 配置。"
+        echo "依赖项安装失败，请手动安装依赖项。"
         exit 1
     fi
 else
-    echo "docopt 已安装，跳过安装步骤。"
+    echo "未找到 requirements.txt 文件，无法安装依赖项。"
+    exit 1
 fi
 
 echo "所有依赖项已满足，可以运行程序。"
