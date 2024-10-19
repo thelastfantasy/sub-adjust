@@ -324,7 +324,6 @@ def start_ui():
 def main():
     # 使用 options_first=True 确保没有参数时不会直接触发 Usage 输出
     args = docopt(USAGE, version=__version__, options_first=True)
-    print(args)
 
     input_files = args["INPUTS"]
 
@@ -340,7 +339,6 @@ def main():
         logger.info("进入命令行模式...")
         shift_value = float(args["--offset"]) * 1000
         layer_numbers = parse_layers(args["--layers"])
-        print(layer_numbers)
         if input_files:
             for filepath in input_files:
                 if filepath.endswith(".ass") or filepath.endswith(".ssa"):
