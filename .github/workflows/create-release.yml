@@ -93,6 +93,8 @@ jobs:
         id: create_release
         if: ${{ steps.validate_title.outputs.version != '' }}
         uses: actions/create-release@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ steps.validate_title.outputs.version }}
           release_name: ${{ steps.validate_title.outputs.version }}
