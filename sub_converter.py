@@ -1,43 +1,14 @@
-import os
 import re
+import os
 import tkinter as tk
 from tkinter import filedialog, messagebox, scrolledtext
-import chardet
-import platform
-import winsound
+from common_utils import detect_encoding, center_window,  custom_messagebox, display_errors
 
 # Constant for subtitle file extension
 SUBTITLE_EXTENSION = '.srt'
 
 # Version constant
 VERSION = 'v0.0.1'
-
-# Function to detect file encoding
-def detect_encoding(file_path):
-    with open(file_path, 'rb') as f:
-        raw_data = f.read()
-    result = chardet.detect(raw_data)
-    return result['encoding']
-
-# Function to center a window
-def center_window(window):
-    window.update_idletasks()
-    screen_width = window.winfo_screenwidth()
-    screen_height = window.winfo_screenheight()
-    size = tuple(int(_) for _ in window.geometry().split('+')[0].split('x'))
-    x = screen_width // 2 - size[0] // 2
-    y = screen_height // 2 - size[1] // 2
-    window.geometry(f"{size[0]}x{size[1]}+{x}+{y}")
-
-# Function to play system sound
-def play_system_sound():
-    system = platform.system()
-    if system == "Windows":
-        winsound.MessageBeep(winsound.MB_OK)
-    elif system == "Linux":
-        pass  # Linux sound handling can be added if needed
-    elif system == "Darwin":
-        pass  # macOS sound handling can be added if needed
 
 class SubtitleConverterApp:
     def __init__(self, root: tk.Tk):
@@ -171,7 +142,6 @@ Style: Default,方正隶变_GBK,48,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,-
         total_files = len(files)
         success_count = 0
         failure_count = 0
-        failure_reasons = []
         advanced_syntax_files = set()  # Use a set to avoid duplicates
         
         for file in files:
@@ -218,7 +188,7 @@ Style: Default,方正隶变_GBK,48,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,-
                             start_end = line.split('-->')
                             start = start_end[0].strip().replace(',', '.')
                             end = start_end[1].strip().replace(',', '.')
-
+                            
                             # Ensure milliseconds are two digits (truncation or padding)
                             if '.' in start:
                                 start = start[:-1] if len(start.split('.')[-1]) > 2 else start.ljust(len(start) + (2 - len(start.split('.')[-1])), '0')
@@ -250,45 +220,17 @@ Style: Default,方正隶变_GBK,48,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,-
             
             except Exception as e:
                 failure_count += 1
-                failure_reasons.append(f"{file}: {str(e)}")
-        
+                
         result_message = (
             f"共处理 {total_files} 个文件。\n"
             f"成功处理 {success_count} 个文件。\n"
             f"失败处理 {failure_count} 个文件。\n"
         )
         
-        if failure_count > 0:
-            result_message += "\n失败原因:\n" + "\n".join(failure_reasons)
-        
         if advanced_syntax_files:
-            result_message += "\n\n以下文件包含高级语法（如 {\\an1} ~ {\\an9}），需要手动进一步处理:\n" + "\n".join(advanced_syntax_files)
+            result_message += "\n以下文件包含高级语法（如 {\\an1} ~ {\\an9}），需要手动进一步处理:\n" + "\n".join(advanced_syntax_files)
         
-        self.display_errors(result_message) if failure_count > 0 or advanced_syntax_files else self.custom_messagebox(result_message)
-
-    def custom_messagebox(self, message):
-        play_system_sound()
-        custom_box = tk.Toplevel(self.root)
-        custom_box.title("处理结果")
-        tk.Label(custom_box, text=message, wraplength=400, justify=tk.LEFT).pack(padx=20, pady=20)
-        button_frame = tk.Frame(custom_box)
-        button_frame.pack(padx=10, pady=10)
-        tk.Button(button_frame, text="确定", command=custom_box.destroy).pack(side=tk.LEFT, padx=5)
-        tk.Button(button_frame, text="退出", command=self.root.destroy).pack(side=tk.LEFT, padx=5)
-        center_window(custom_box)
-        custom_box.transient(self.root)
-        custom_box.grab_set()
-        self.root.wait_window(custom_box)
-
-    def display_errors(self, errors):
-        play_system_sound()
-        error_window = tk.Toplevel(self.root)
-        error_window.title("错误信息")
-        error_text = scrolledtext.ScrolledText(error_window, wrap=tk.WORD, state='normal')
-        error_text.pack(expand=True, fill='both')
-        error_text.insert(tk.END, errors)
-        error_text.config(state='disabled')
-        center_window(error_window)
+        display_errors(self.root, result_message)
 
 if __name__ == "__main__":
     root = tk.Tk()
