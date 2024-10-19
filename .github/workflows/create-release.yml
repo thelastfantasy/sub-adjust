@@ -51,8 +51,14 @@ jobs:
       - name: Create a tag
         if: ${{ steps.validate_title.outputs.version != '' }}
         run: |
-          git tag ${{ steps.validate_title.outputs.version }}
-          git push origin ${{ steps.validate_title.outputs.version }}
+          tag_exists=$(git tag -l "${{ steps.validate_title.outputs.version }}")
+          if [ -z "$tag_exists" ]; then
+            git tag ${{ steps.validate_title.outputs.version }}
+            git push origin ${{ steps.validate_title.outputs.version }}
+          else
+            echo "Tag ${{ steps.validate_title.outputs.version }} already exists. Skipping tag creation."
+          fi
+        shell: bash
 
   # Job 2: Compile using matrix for different platforms
   compile:
@@ -146,22 +152,22 @@ jobs:
       # Tar compiled Linux binaries
       - name: Tar Linux binaries
         run: |
-          tar -czvf "sub_adjust-v${{ needs.validate_and_tag.outputs.version }}-linux-x64.tar.gz" -C build/linux .
+          tar -czvf "sub_adjust-${{ needs.validate_and_tag.outputs.version }}-linux-x64.tar.gz" -C build/linux .
 
       # Tar compiled macOS binaries
       - name: Tar macOS binaries
         run: |
-          tar -czvf "sub_adjust-v${{ needs.validate_and_tag.outputs.version }}-macos-x64.tar.gz" -C build/macos .
+          tar -czvf "sub_adjust-${{ needs.validate_and_tag.outputs.version }}-macos-x64.tar.gz" -C build/macos .
 
       # Zip compiled Windows binaries
       - name: Zip Windows binaries
         run: |
-          zip -r "sub_adjust-v${{ needs.validate_and_tag.outputs.version }}-win-x64.zip" build/windows
+          zip -r "sub_adjust-${{ needs.validate_and_tag.outputs.version }}-win-x64.zip" build/windows
 
       # Zip source code
       - name: Zip source code
         run: |
-          zip -r "sub_adjust-v${{ needs.validate_and_tag.outputs.version }}-source.zip" .
+          zip -r "sub_adjust-${{ needs.validate_and_tag.outputs.version }}-source.zip" .
 
       # Create GitHub release
       - name: Create GitHub release
