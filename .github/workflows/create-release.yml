@@ -125,11 +125,11 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           # 直接在项目根目录下执行 PyInstaller
-          pyinstaller --onefile sub_adjust.py
-          pyinstaller --onefile sub_converter.py
+          pyinstaller --onefile $GITHUB_WORKSPACE/sub_adjust.py
+          pyinstaller --onefile $GITHUB_WORKSPACE/sub_converter.py
 
           # 找到当前工作目录
-          current_dir=$(pwd)
+          current_dir=$GITHUB_WORKSPACE
           echo "Current directory: $current_dir"
 
           # 假设工作目录为 /home/runner/work/sub-adjust/sub-adjust/
@@ -137,26 +137,26 @@ jobs:
 
           # 移动编译后的文件到对应的 build 目录
           if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
-            mkdir -p build/linux
-            if [ -f "${current_dir}/dist/sub_adjust" ]; then
-              mv "${current_dir}/dist/sub_adjust" build/linux/
+            mkdir -p $GITHUB_WORKSPACE/build/linux
+            if [ -f "$GITHUB_WORKSPACE/dist/sub_adjust" ]; then
+              mv "$GITHUB_WORKSPACE/dist/sub_adjust" "$GITHUB_WORKSPACE/build/linux/"
             else
               echo "Error: sub_adjust not found in dist/ after PyInstaller run."
             fi
-            if [ -f "${current_dir}/dist/sub_converter" ]; then
-              mv "${current_dir}/dist/sub_converter" build/linux/
+            if [ -f "$GITHUB_WORKSPACE/dist/sub_converter" ]; then
+              mv "$GITHUB_WORKSPACE/dist/sub_converter" "$GITHUB_WORKSPACE/build/linux/"
             else
               echo "Error: sub_converter not found in dist/ after PyInstaller run."
             fi
           elif [ "${{ matrix.os }}" == "macos-latest" ]; then
-            mkdir -p build/macos
-            if [ -f "${current_dir}/dist/sub_adjust" ]; then
-              mv "${current_dir}/dist/sub_adjust" build/macos/
+            mkdir -p $GITHUB_WORKSPACE/build/macos
+            if [ -f "$GITHUB_WORKSPACE/dist/sub_adjust" ]; then
+              mv "$GITHUB_WORKSPACE/dist/sub_adjust" "$GITHUB_WORKSPACE/build/macos/"
             else
               echo "Error: sub_adjust not found in dist/ after PyInstaller run."
             fi
-            if [ -f "${current_dir}/dist/sub_converter" ]; then
-              mv "${current_dir}/dist/sub_converter" build/macos/
+            if [ -f "$GITHUB_WORKSPACE/dist/sub_converter" ]; then
+              mv "$GITHUB_WORKSPACE/dist/sub_converter" "$GITHUB_WORKSPACE/build/macos/"
             else
               echo "Error: sub_converter not found in dist/ after PyInstaller run."
             fi
@@ -166,26 +166,22 @@ jobs:
       - name: Compile for Windows
         if: runner.os == 'Windows'
         run: |
-          # 获取当前工作目录
-          $current_dir = Get-Location
-          Write-Output "Current directory: $current_dir"
-
           # 直接在项目根目录下执行 PyInstaller
-          pyinstaller --onefile sub_adjust.py
-          pyinstaller --onefile sub_converter.py
+          pyinstaller --onefile $env:GITHUB_WORKSPACE\sub_adjust.py
+          pyinstaller --onefile $env:GITHUB_WORKSPACE\sub_converter.py
 
           # 确保存在 build/windows 目录并移动编译后的文件
-          New-Item -ItemType Directory -Force -Path build/windows
-
-          if (Test-Path "$current_dir\dist\sub_adjust.exe") {
-            Move-Item -Path "$current_dir\dist\sub_adjust.exe" -Destination "build/windows/"
-          } else {
+          mkdir -p $env:GITHUB_WORKSPACE\build\windows
+          if (Test-Path "$env:GITHUB_WORKSPACE\dist\sub_adjust.exe") {
+            Move-Item "$env:GITHUB_WORKSPACE\dist\sub_adjust.exe" "$env:GITHUB_WORKSPACE\build\windows\"
+          }
+          else {
             Write-Output "Error: sub_adjust.exe not found in dist/ after PyInstaller run."
           }
-
-          if (Test-Path "$current_dir\dist\sub_converter.exe") {
-            Move-Item -Path "$current_dir\dist\sub_converter.exe" -Destination "build/windows/"
-          } else {
+          if (Test-Path "$env:GITHUB_WORKSPACE\dist\sub_converter.exe") {
+            Move-Item "$env:GITHUB_WORKSPACE\dist\sub_converter.exe" "$env:GITHUB_WORKSPACE\build\windows\"
+          }
+          else {
             Write-Output "Error: sub_converter.exe not found in dist/ after PyInstaller run."
           }
         shell: pwsh
@@ -200,25 +196,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Tar compiled Linux binaries
       - name: Tar Linux binaries
+        if: runner.os == 'Linux'
         run: |
-          tar -czvf "sub_adjust-${{ needs.validate_and_tag.outputs.version }}-linux-x64.tar.gz" -C build/linux .
+          tar -czvf "$GITHUB_WORKSPACE/sub_adjust-${{ needs.validate_and_tag.outputs.version }}-linux-x64.tar.gz" -C "$GITHUB_WORKSPACE/build/linux" .
 
-      # Tar compiled macOS binaries
       - name: Tar macOS binaries
+        if: runner.os == 'macOS'
         run: |
-          tar -czvf "sub_adjust-${{ needs.validate_and_tag.outputs.version }}-macos-x64.tar.gz" -C build/macos .
+          tar -czvf "$GITHUB_WORKSPACE/sub_adjust-${{ needs.validate_and_tag.outputs.version }}-macos-x64.tar.gz" -C "$GITHUB_WORKSPACE/build/macos" .
 
-      # Zip compiled Windows binaries
       - name: Zip Windows binaries
+        if: runner.os == 'Windows'
         run: |
-          zip -r "sub_adjust-${{ needs.validate_and_tag.outputs.version }}-win-x64.zip" build/windows
-
-      # Zip source code
-      - name: Zip source code
-        run: |
-          zip -r "sub_adjust-${{ needs.validate_and_tag.outputs.version }}-source.zip" .
+          Compress-Archive -Path "$env:GITHUB_WORKSPACE\build\windows\*" -DestinationPath "$env:GITHUB_WORKSPACE\sub_adjust-${{ needs.validate_and_tag.outputs.version }}-win-x64.zip"
+        shell: pwsh
 
       # Create GitHub release
       - name: Create GitHub release
@@ -235,31 +227,28 @@ jobs:
           draft: false
           prerelease: false
 
-      # Upload Linux binaries tar.gz file to release
       - name: Upload Linux binaries tar.gz file to release
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release_step.outputs.upload_url }}
-          asset_path: ./sub_adjust-${{ needs.validate_and_tag.outputs.version }}-linux-x64.tar.gz
-          asset_name: sub_adjust-${{ needs.validate_and_tag.outputs.version }}-linux-x64.tar.gz
+          asset_path: "$GITHUB_WORKSPACE/sub_adjust-${{ needs.validate_and_tag.outputs.version }}-linux-x64.tar.gz"
+          asset_name: "sub_adjust-${{ needs.validate_and_tag.outputs.version }}-linux-x64.tar.gz"
           asset_content_type: application/gzip
 
-      # Upload macOS binaries tar.gz file to release
       - name: Upload macOS binaries tar.gz file to release
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release_step.outputs.upload_url }}
-          asset_path: ./sub_adjust-${{ needs.validate_and_tag.outputs.version }}-macos-x64.tar.gz
-          asset_name: sub_adjust-${{ needs.validate_and_tag.outputs.version }}-macos-x64.tar.gz
+          asset_path: "$GITHUB_WORKSPACE/sub_adjust-${{ needs.validate_and_tag.outputs.version }}-macos-x64.tar.gz"
+          asset_name: "sub_adjust-${{ needs.validate_and_tag.outputs.version }}-macos-x64.tar.gz"
           asset_content_type: application/gzip
 
-      # Upload Windows binaries zip file to release
       - name: Upload Windows binaries zip file to release
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release_step.outputs.upload_url }}
-          asset_path: ./sub_adjust-${{ needs.validate_and_tag.outputs.version }}-win-x64.zip
-          asset_name: sub_adjust-${{ needs.validate_and_tag.outputs.version }}-win-x64.zip
+          asset_path: "$GITHUB_WORKSPACE/sub_adjust-${{ needs.validate_and_tag.outputs.version }}-win-x64.zip"
+          asset_name: "sub_adjust-${{ needs.validate_and_tag.outputs.version }}-win-x64.zip"
           asset_content_type: application/zip
 
       # Upload source zip file to release
