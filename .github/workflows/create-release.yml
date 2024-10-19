@@ -94,7 +94,7 @@ jobs:
         if: ${{ steps.validate_title.outputs.version != '' }}
         uses: actions/create-release@latest
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
         with:
           tag_name: ${{ steps.validate_title.outputs.version }}
           release_name: ${{ steps.validate_title.outputs.version }}
