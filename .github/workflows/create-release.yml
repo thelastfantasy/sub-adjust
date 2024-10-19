@@ -110,33 +110,39 @@ jobs:
       - name: Compile for Linux and macOS
         if: runner.os != 'Windows'
         run: |
-          # 直接在项目根目录下执行 PyInstaller
           pyinstaller --onefile sub_adjust.py
           pyinstaller --onefile sub_converter.py
 
           # 移动编译后的文件到对应的 build 目录
           if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
             mkdir -p build/linux
-            mv dist/sub_adjust build/linux/
-            mv dist/sub_converter build/linux/
+            [ -f dist/sub_adjust ] && mv dist/sub_adjust build/linux/ || echo "sub_adjust not found"
+            [ -f dist/sub_converter ] && mv dist/sub_converter build/linux/ || echo "sub_converter not found"
           elif [ "${{ matrix.os }}" == "macos-latest" ]; then
             mkdir -p build/macos
-            mv dist/sub_adjust build/macos/
-            mv dist/sub_converter build/macos/
+            [ -f dist/sub_adjust ] && mv dist/sub_adjust build/macos/ || echo "sub_adjust not found"
+            [ -f dist/sub_converter ] && mv dist/sub_converter build/macos/ || echo "sub_converter not found"
           fi
         shell: bash
 
       - name: Compile for Windows
         if: runner.os == 'Windows'
         run: |
-          # 直接在项目根目录下执行 PyInstaller
           pyinstaller --onefile sub_adjust.py
           pyinstaller --onefile sub_converter.py
 
           # 移动编译后的文件到对应的 build 目录
           mkdir -p build/windows
-          mv dist/sub_adjust.exe build/windows/
-          mv dist/sub_converter.exe build/windows/
+          if (Test-Path dist/sub_adjust.exe) {
+            Move-Item -Path dist/sub_adjust.exe -Destination build/windows/
+          } else {
+            Write-Output "sub_adjust.exe not found"
+          }
+          if (Test-Path dist/sub_converter.exe) {
+            Move-Item -Path dist/sub_converter.exe -Destination build/windows/
+          } else {
+            Write-Output "sub_converter.exe not found"
+          }
         shell: pwsh
 
   # Job 3: Create release
