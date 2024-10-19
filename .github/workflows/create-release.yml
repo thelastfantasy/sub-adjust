@@ -75,11 +75,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Read the file list from PackageAssets.txt and zip the specified files into one archive
-      - name: Zip release files
-        if: ${{ needs.validate_and_tag.outputs.version != '' }}
+      - name: Create release assets archive
         run: |
-          zip -r "sub-adjust_${{ needs.validate_and_tag.outputs.version }}.zip" $(cat .github/workflows/PackageAssets.txt)
+          output_zip="sub-adjust_${{ needs.validate_and_tag.outputs.version }}.zip"
+          assets_file="$GITHUB_WORKSPACE/.github/workflows/PackageAssets.txt"
+
+          # 创建包含指定文件的压缩包
+          while IFS= read -r asset; do
+            echo "Adding asset: $asset"
+            zip -r "$output_zip" "$GITHUB_WORKSPACE/$asset"
+          done < "$assets_file"
+        shell: bash
 
       # Create a release and upload the zip file
       - name: Create GitHub release
