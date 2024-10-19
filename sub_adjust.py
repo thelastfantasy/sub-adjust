@@ -25,7 +25,7 @@ Options:
   --version                               显示版本信息
   -h --help                               显示帮助信息
 
-Examples (二进制版本):
+Examples (二进制版本，需自行编译):
   # 将字幕提前2.5秒
   sub_adjust --offset -2.5 example.ass
   
