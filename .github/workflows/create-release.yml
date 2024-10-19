@@ -14,7 +14,7 @@ concurrency:
 jobs:
   # Job 1: Validate the PR and extract version
   validate_and_tag:
-    if: github.event.pull_request.merged == true
+    # if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
 
     outputs:
