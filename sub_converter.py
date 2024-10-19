@@ -1,14 +1,21 @@
 import re
 import os
+import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox, scrolledtext
-from utils import detect_encoding, center_window,  custom_messagebox, display_errors
+from utils import detect_encoding, center_window, custom_messagebox, display_errors
+import queue
+from loguru import logger
+import json
 
 # Constant for subtitle file extension
 SUBTITLE_EXTENSION = '.srt'
 
 # Version constant
 VERSION = 'v0.0.1'
+
+# Global variable to determine command-line mode
+is_cmd_mode = False
 
 class SubtitleConverterApp:
     def __init__(self, root: tk.Tk):
@@ -57,7 +64,7 @@ Style: Default,方正隶变_GBK,48,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,-
         self.input_text.insert(tk.END, default_template)
         
         # Convert Button
-        self.convert_button = tk.Button(root, text="转换字幕", command=self.convert_subtitles)
+        self.convert_button = tk.Button(root, text="转换字幕", command=self.start_conversion_thread)
         self.convert_button.pack(pady=10)
 
         # Create context menu for the input text widget
@@ -132,105 +139,133 @@ Style: Default,方正隶变_GBK,48,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,-
             self.context_menu.entryconfig("重做", state=tk.DISABLED)
         self.input_text.edit_modified(False)
 
-    def convert_subtitles(self):
+    def start_conversion_thread(self):
+        result_queue = queue.Queue()
+        thread = threading.Thread(target=self.convert_subtitles, args=(result_queue,))
+        thread.daemon = True
+        thread.start()
+        self.check_queue(result_queue)
+
+    def check_queue(self, result_queue):
+        try:
+            result_message_json = result_queue.get_nowait()
+            if result_message_json:
+                # 将结果从 JSON 字符串转换回字典
+                result_message = json.loads(result_message_json)
+                # 根据 includeDetail 值来决定使用哪个弹窗
+                if result_message['includeDetail']:
+                    display_errors(self.root, result_message['body'])
+                else:
+                    custom_messagebox(self.root, result_message['body'])
+        except queue.Empty:
+            self.root.after(100, lambda: self.check_queue(result_queue))
+
+    def convert_subtitles(self, result_queue):
         template = self.input_text.get("1.0", tk.END)
         files = [f for f in os.listdir('.') if os.path.isfile(f) and f.endswith(SUBTITLE_EXTENSION)]
         if not files:
-            messagebox.showerror("错误", "当前目录中未找到字幕文件。")
+            result_queue.put(json.dumps({"body": "当前目录中未找到字幕文件。", "includeDetail": True}))
             return
-        
+
         total_files = len(files)
         success_count = 0
         failure_count = 0
         advanced_syntax_files = set()  # Use a set to avoid duplicates
-        
+
         for file in files:
             try:
                 encoding = detect_encoding(file)
                 with open(file, 'r', encoding=encoding) as f:
                     content = f.readlines()
-                
+
                 filename, _ext = os.path.splitext(file)
                 new_filename = f"{filename}.converted.ass"
-                
-                # Write to new ASS file
-                with open(new_filename, 'w', encoding='utf-8') as f:
-                    # Write metadata from the input field
-                    metadata = template.format(filename=filename)
-                    f.write(metadata + '\n')
-                    f.write("[Events]\n")
-                    f.write("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n")
-                    
-                    # Extract styles from the metadata
-                    style_lines = [line for line in metadata.splitlines() if line.startswith("Style:")]
-                    style_names = [line.split(",")[0].split(":")[1].strip() for line in style_lines]
-                    
-                    # Determine which style to use based on rules
-                    if len(style_names) == 1:
-                        style_name = style_names[0]
-                    else:
-                        style_name = style_names[0]  # Default to the first style name if no "default" is found
-                        for name in style_names:
-                            if name.lower() == "default":
-                                style_name = name
-                                break
-                            elif "default" in name.lower():
-                                style_name = name
-                                break
-                    
-                    # Write dialogue lines
-                    i = 0
-                    while i < len(content):
-                        line = content[i].strip()
 
-                        # If it's a timestamp line (including non-standard formats)
-                        if re.match(r'\d{2}:\d{2}:\d{2}(,\d{1,3})? --> \d{2}:\d{2}:\d{2}(,\d{1,3})?', line):
-                            start_end = line.split('-->')
-                            start = start_end[0].strip().replace(',', '.')
-                            end = start_end[1].strip().replace(',', '.')
-                            
-                            # Ensure milliseconds are two digits (truncation or padding)
-                            if '.' in start:
-                                start = start[:-1] if len(start.split('.')[-1]) > 2 else start.ljust(len(start) + (2 - len(start.split('.')[-1])), '0')
-                            else:
-                                start += '.00'
-                            if '.' in end:
-                                end = end[:-1] if len(end.split('.')[-1]) > 2 else end.ljust(len(end) + (2 - len(end.split('.')[-1])), '0')
-                            else:
-                                end += '.00'
-                            
-                            i += 1
-                            
-                            # Gather all subtitle lines until an empty line is found
-                            dialogue_text = []
-                            while i < len(content) and content[i].strip():
-                                dialogue_text.append(content[i].strip())
-                                i += 1
-                            
-                            # Join the lines into one subtitle text
-                            full_dialogue = ' '.join(dialogue_text)
-                            f.write(f"Dialogue: 0,{start},{end},{style_name},,0,0,0,,{full_dialogue}\n")
+                new_lines = []
+                # Write metadata from the input field
+                metadata = template.format(filename=filename)
+                new_lines.append(metadata + '\n')
+                new_lines.append("[Events]\n")
+                new_lines.append("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n")
 
-                            # Check for advanced syntax like {\an1} ~ {\an9}
-                            if re.search(r'\{\\an[1-9]\}', full_dialogue):
-                                advanced_syntax_files.add(file)
+                # Extract styles from the metadata
+                style_lines = [line for line in metadata.splitlines() if line.startswith("Style:")]
+                style_names = [line.split(",")[0].split(":")[1].strip() for line in style_lines]
+
+                # Determine which style to use based on rules
+                if len(style_names) == 1:
+                    style_name = style_names[0]
+                else:
+                    style_name = style_names[0]  # Default to the first style name if no "default" is found
+                    for name in style_names:
+                        if name.lower() == "default":
+                            style_name = name
+                            break
+                        elif "default" in name.lower():
+                            style_name = name
+                            break
+
+                # Write dialogue lines
+                i = 0
+                while i < len(content):
+                    line = content[i].strip()
+
+                    # If it's a timestamp line (including non-standard formats)
+                    if re.match(r'\d{2}:\d{2}:\d{2}(,\d{1,3})? --> \d{2}:\d{2}:\d{2}(,\d{1,3})?', line):
+                        start_end = line.split('-->')
+                        start = start_end[0].strip().replace(',', '.')
+                        end = start_end[1].strip().replace(',', '.')
+
+                        # Ensure milliseconds are two digits (truncation or padding)
+                        if '.' in start:
+                            start = start[:-1] if len(start.split('.')[-1]) > 2 else start.ljust(len(start) + (2 - len(start.split('.')[-1])), '0')
+                        else:
+                            start += '.00'
+                        if '.' in end:
+                            end = end[:-1] if len(end.split('.')[-1]) > 2 else end.ljust(len(end) + (2 - len(end.split('.')[-1])), '0')
+                        else:
+                            end += '.00'
+
                         i += 1
-                
+
+                        # Gather all subtitle lines until an empty line is found
+                        dialogue_text = []
+                        while i < len(content) and content[i].strip():
+                            dialogue_text.append(content[i].strip())
+                            i += 1
+
+                        # Join the lines into one subtitle text
+                        full_dialogue = ' '.join(dialogue_text)
+                        new_lines.append(f"Dialogue: 0,{start},{end},{style_name},,0,0,0,,{full_dialogue}\n")
+
+                        # Check for advanced syntax like {\an1} ~ {\an9}
+                        if re.search(r'\{\\an[1-9]\}', full_dialogue):
+                            advanced_syntax_files.add(file)
+                    i += 1
+
+                # Write the new content to the file
+                with open(new_filename, 'w', encoding='utf-8') as f:
+                    f.writelines(new_lines)
+
                 success_count += 1
-            
+
             except Exception as e:
                 failure_count += 1
-                
+
         result_message = (
             f"共处理 {total_files} 个文件。\n"
             f"成功处理 {success_count} 个文件。\n"
             f"失败处理 {failure_count} 个文件。\n"
         )
-        
+
+        include_detail = False
+
         if advanced_syntax_files:
             result_message += "\n以下文件包含高级语法（如 {\\an1} ~ {\\an9}），需要手动进一步处理:\n" + "\n".join(advanced_syntax_files)
-        
-        display_errors(self.root, result_message)
+            include_detail = True
+
+        # 将结果信息放入队列中，以 JSON 格式传递
+        result_queue.put(json.dumps({"body": result_message, "includeDetail": include_detail}))
 
 if __name__ == "__main__":
     root = tk.Tk()
