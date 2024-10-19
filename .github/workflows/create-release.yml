@@ -69,25 +69,16 @@ jobs:
           fi
         shell: bash
 
-  # Job 2: Create release
-  create_release:
-    needs: validate_and_tag
-    if: ${{ needs.validate_and_tag.outputs.version != '' }}
-    runs-on: ubuntu-latest
-
-    steps:
       - name: List all files in the workspace
         run: |
           echo "Workspace directory: $GITHUB_WORKSPACE"
           ls -la $GITHUB_WORKSPACE
-          echo "Listing .github directory:"
-          ls -la $GITHUB_WORKSPACE/.github
-          echo "Listing workflows directory:"
-          ls -la $GITHUB_WORKSPACE/.github/workflows
+          echo "Listing all files recursively:"
+          find $GITHUB_WORKSPACE
 
       - name: Create release assets archive
         run: |
-          output_zip="sub-adjust_${{ needs.validate_and_tag.outputs.version }}.zip"
+          output_zip="sub-adjust_${{ steps.validate_title.outputs.version }}.zip"
           assets_file="$GITHUB_WORKSPACE/.github/workflows/PackageAssets.txt"
 
           # 创建包含指定文件的压缩包
@@ -100,13 +91,13 @@ jobs:
       # Create a release and upload the zip file
       - name: Create GitHub release
         id: create_release
-        if: ${{ needs.validate_and_tag.outputs.version != '' }}
+        if: ${{ steps.validate_title.outputs.version != '' }}
         uses: actions/create-release@latest
         with:
-          tag_name: ${{ needs.validate_and_tag.outputs.version }}
-          release_name: ${{ needs.validate_and_tag.outputs.version }}
+          tag_name: ${{ steps.validate_title.outputs.version }}
+          release_name: ${{ steps.validate_title.outputs.version }}
           body: |
-            Automatically created release for version ${{ needs.validate_and_tag.outputs.version }}.
+            Automatically created release for version ${{ steps.validate_title.outputs.version }}.
 
             ### PR Description:
             ${{ github.event.pull_request.body }}
@@ -116,10 +107,10 @@ jobs:
 
       # Upload the zip file as the release asset
       - name: Upload zip file to release
-        if: ${{ needs.validate_and_tag.outputs.version != '' }}
+        if: ${{ steps.validate_title.outputs.version != '' }}
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./sub-adjust_${{ needs.validate_and_tag.outputs.version }}.zip
-          asset_name: sub-adjust_${{ needs.validate_and_tag.outputs.version }}.zip
+          asset_path: ./sub-adjust_${{ steps.validate_title.outputs.version }}.zip
+          asset_name: sub-adjust_${{ steps.validate_title.outputs.version }}.zip
           asset_content_type: application/zip
