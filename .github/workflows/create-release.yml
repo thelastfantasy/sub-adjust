@@ -84,7 +84,7 @@ jobs:
           # 创建包含指定文件的压缩包
           while IFS= read -r asset; do
             echo "Adding asset: $asset"
-            zip -r "$output_zip" "$GITHUB_WORKSPACE/$asset"
+            zip -j "$output_zip" "$GITHUB_WORKSPACE/$asset"
           done < "$assets_file"
         shell: bash
 
