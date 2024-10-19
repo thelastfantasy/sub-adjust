@@ -111,6 +111,8 @@ jobs:
       - name: Upload zip file to release
         if: ${{ steps.validate_title.outputs.version != '' }}
         uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./sub-adjust_${{ steps.validate_title.outputs.version }}.zip
