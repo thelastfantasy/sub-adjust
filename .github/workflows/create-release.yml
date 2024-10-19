@@ -167,25 +167,27 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           # 获取当前工作目录
-          current_dir=$(pwd)
-          echo "Current directory: $current_dir"
+          $current_dir = Get-Location
+          Write-Output "Current directory: $current_dir"
 
           # 直接在项目根目录下执行 PyInstaller
           pyinstaller --onefile sub_adjust.py
           pyinstaller --onefile sub_converter.py
 
           # 确保存在 build/windows 目录并移动编译后的文件
-          mkdir -p build/windows
-          if [ -f "${current_dir}\\dist\\sub_adjust.exe" ]; then
-            mv "${current_dir}\\dist\\sub_adjust.exe" build/windows/
-          else
-            echo "Error: sub_adjust.exe not found in dist/ after PyInstaller run."
-          fi
-          if [ -f "${current_dir}\\dist\\sub_converter.exe" ]; then
-            mv "${current_dir}\\dist\\sub_converter.exe" build/windows/
-          else
-            echo "Error: sub_converter.exe not found in dist/ after PyInstaller run."
-          fi
+          New-Item -ItemType Directory -Force -Path build/windows
+
+          if (Test-Path "$current_dir\dist\sub_adjust.exe") {
+            Move-Item -Path "$current_dir\dist\sub_adjust.exe" -Destination "build/windows/"
+          } else {
+            Write-Output "Error: sub_adjust.exe not found in dist/ after PyInstaller run."
+          }
+
+          if (Test-Path "$current_dir\dist\sub_converter.exe") {
+            Move-Item -Path "$current_dir\dist\sub_converter.exe" -Destination "build/windows/"
+          } else {
+            Write-Output "Error: sub_converter.exe not found in dist/ after PyInstaller run."
+          }
         shell: pwsh
 
   # Job 3: Create release
