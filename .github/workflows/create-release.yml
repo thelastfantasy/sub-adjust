@@ -51,12 +51,26 @@ jobs:
       - name: Create a tag
         if: ${{ steps.validate_title.outputs.version != '' }}
         run: |
-          tag_exists=$(git tag -l "${{ steps.validate_title.outputs.version }}")
+          version=${{ steps.validate_title.outputs.version }}
+
+          # 检查本地是否存在该 Tag
+          tag_exists=$(git tag -l "$version")
+
           if [ -z "$tag_exists" ]; then
-            git tag ${{ steps.validate_title.outputs.version }}
-            git push origin ${{ steps.validate_title.outputs.version }}
+            # 本地不存在该 Tag，创建 Tag
+            git tag "$version"
+            
+            # 检查远程是否存在该 Tag
+            remote_tag_exists=$(git ls-remote --tags origin | grep "refs/tags/$version" || true)
+            if [ -z "$remote_tag_exists" ]; then
+              # 如果远程也不存在，推送 Tag
+              git push origin "$version"
+              echo "Tag $version created and pushed successfully."
+            else
+              echo "Tag $version already exists in remote. Skipping push."
+            fi
           else
-            echo "Tag ${{ steps.validate_title.outputs.version }} already exists. Skipping tag creation."
+            echo "Tag $version already exists locally. Skipping tag creation and push."
           fi
         shell: bash
 
