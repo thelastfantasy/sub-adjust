@@ -92,22 +92,23 @@ jobs:
 
       - name: Compile for ${{ matrix.os }}
         run: |
-          cd src
+          # 直接在项目根目录下执行 PyInstaller
           pyinstaller --onefile sub_adjust.py
           pyinstaller --onefile sub_converter.py
-          cd ..
+
+          # 移动编译后的文件到对应的 build 目录
           if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
             mkdir -p build/linux
-            mv src/dist/sub_adjust build/linux/
-            mv src/dist/sub_converter build/linux/
+            mv dist/sub_adjust build/linux/
+            mv dist/sub_converter build/linux/
           elif [ "${{ matrix.os }}" == "windows-latest" ]; then
             mkdir -p build/windows
-            mv src/dist/sub_adjust.exe build/windows/
-            mv src/dist/sub_converter.exe build/windows/
+            mv dist/sub_adjust.exe build/windows/
+            mv dist/sub_converter.exe build/windows/
           elif [ "${{ matrix.os }}" == "macos-latest" ]; then
             mkdir -p build/macos
-            mv src/dist/sub_adjust build/macos/
-            mv src/dist/sub_converter build/macos/
+            mv dist/sub_adjust build/macos/
+            mv dist/sub_converter build/macos/
           fi
 
   # Job 3: Create release
