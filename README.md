@@ -4,9 +4,12 @@
 功能没sushi强大，但是主打一个轻巧、快速、简单。
 
 # 说明
-下载各自平台对应的版本，解压后运行可执行文件即可。
+解压后如果是首次运行，执行对应平台的install_dependencies_once.bat (Windows) 或 install_dependencies_once.sh (Linux & MacOS) 即可简单安装依赖工具。
 
-两款工具均只支持UTF-8编码字幕文件。
+运行各个start_xxx.bat (Windows) 或 start_xxx.sh (Linux & MacOS) 即可启动对应工具的GUI版本。
+sub_adjust命令行版本帮助请点击GUI界面右下角按钮查阅。
+
+<font color="red">两款工具均只支持UTF-8编码字幕文件。</font>
 
 sub_adjust: 
 调轴工具，支持srt、ass、ssa三种格式，支持批量操作（默认读取程序目录下的字幕文件，不含子目录），可双击GUI运行亦可命令行运行。
@@ -14,3 +17,12 @@ sub_adjust:
 
 sub_converter:
 srt转ass字幕工具，支持批量操作（默认读取程序目录下的字幕文件，不含子目录），可使用自定义元数据，目前仅可GUI运行。
+
+# 为什么不提供编译好的可执行文件？
+编译后太大了，可以尝试自行编译
+
+编译步骤：
+1. 安装Git并克隆本项目源码
+2. 执行install_dependencies_once.bat (Windows) 或 install_dependencies_once.sh (Linux & MacOS) 安装Python等依赖工具
+3. 安装pyinstaller: `pip install -U pyinstaller`
+4. 在项目目录下执行 `pyinstaller -w --onefile sub_adjust.py` ， `pyinstaller -w --onefile sub_converter.py` 即可在`./dist`目录下生成可执行文件
