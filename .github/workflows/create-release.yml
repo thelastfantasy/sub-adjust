@@ -23,16 +23,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Validate PR title and extract version
+      - name: Validate branch name and extract version
         id: validate_title
         run: |
-          pr_title="${{ github.event.pull_request.title }}"
+          branch_name="${GITHUB_REF##*/}"
 
-          if [[ "$pr_title" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
-            version=$(echo "$pr_title" | grep -oE '^v[0-9]+\.[0-9]+\.[0-9]+')
+          if [[ "$branch_name" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            version=$(echo "$branch_name" | grep -oE '^v[0-9]+\.[0-9]+\.[0-9]+')
             echo "version=$version" >> "$GITHUB_OUTPUT"
           else
-            echo "PR title does not match the required format (vX.X.X)."
+            echo "Branch name does not match the required format (vX.X.X)."
             exit 1  # Exit with failure
           fi
         shell: bash
