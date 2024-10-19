@@ -124,39 +124,68 @@ jobs:
       - name: Compile for Linux and macOS
         if: runner.os != 'Windows'
         run: |
+          # 直接在项目根目录下执行 PyInstaller
           pyinstaller --onefile sub_adjust.py
           pyinstaller --onefile sub_converter.py
+
+          # 找到当前工作目录
+          current_dir=$(pwd)
+          echo "Current directory: $current_dir"
+
+          # 假设工作目录为 /home/runner/work/sub-adjust/sub-adjust/
+          # dist 文件夹应位于 ${current_dir}/dist
 
           # 移动编译后的文件到对应的 build 目录
           if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
             mkdir -p build/linux
-            [ -f dist/sub_adjust ] && mv dist/sub_adjust build/linux/ || echo "sub_adjust not found"
-            [ -f dist/sub_converter ] && mv dist/sub_converter build/linux/ || echo "sub_converter not found"
+            if [ -f "${current_dir}/dist/sub_adjust" ]; then
+              mv "${current_dir}/dist/sub_adjust" build/linux/
+            else
+              echo "Error: sub_adjust not found in dist/ after PyInstaller run."
+            fi
+            if [ -f "${current_dir}/dist/sub_converter" ]; then
+              mv "${current_dir}/dist/sub_converter" build/linux/
+            else
+              echo "Error: sub_converter not found in dist/ after PyInstaller run."
+            fi
           elif [ "${{ matrix.os }}" == "macos-latest" ]; then
             mkdir -p build/macos
-            [ -f dist/sub_adjust ] && mv dist/sub_adjust build/macos/ || echo "sub_adjust not found"
-            [ -f dist/sub_converter ] && mv dist/sub_converter build/macos/ || echo "sub_converter not found"
+            if [ -f "${current_dir}/dist/sub_adjust" ]; then
+              mv "${current_dir}/dist/sub_adjust" build/macos/
+            else
+              echo "Error: sub_adjust not found in dist/ after PyInstaller run."
+            fi
+            if [ -f "${current_dir}/dist/sub_converter" ]; then
+              mv "${current_dir}/dist/sub_converter" build/macos/
+            else
+              echo "Error: sub_converter not found in dist/ after PyInstaller run."
+            fi
           fi
         shell: bash
 
       - name: Compile for Windows
         if: runner.os == 'Windows'
         run: |
+          # 获取当前工作目录
+          current_dir=$(pwd)
+          echo "Current directory: $current_dir"
+
+          # 直接在项目根目录下执行 PyInstaller
           pyinstaller --onefile sub_adjust.py
           pyinstaller --onefile sub_converter.py
 
-          # 移动编译后的文件到对应的 build 目录
+          # 确保存在 build/windows 目录并移动编译后的文件
           mkdir -p build/windows
-          if (Test-Path dist/sub_adjust.exe) {
-            Move-Item -Path dist/sub_adjust.exe -Destination build/windows/
-          } else {
-            Write-Output "sub_adjust.exe not found"
-          }
-          if (Test-Path dist/sub_converter.exe) {
-            Move-Item -Path dist/sub_converter.exe -Destination build/windows/
-          } else {
-            Write-Output "sub_converter.exe not found"
-          }
+          if [ -f "${current_dir}\\dist\\sub_adjust.exe" ]; then
+            mv "${current_dir}\\dist\\sub_adjust.exe" build/windows/
+          else
+            echo "Error: sub_adjust.exe not found in dist/ after PyInstaller run."
+          fi
+          if [ -f "${current_dir}\\dist\\sub_converter.exe" ]; then
+            mv "${current_dir}\\dist\\sub_converter.exe" build/windows/
+          else
+            echo "Error: sub_converter.exe not found in dist/ after PyInstaller run."
+          fi
         shell: pwsh
 
   # Job 3: Create release
@@ -209,8 +238,8 @@ jobs:
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release_step.outputs.upload_url }}
-          asset_path: ./sub_adjust-v${{ needs.validate_and_tag.outputs.version }}-linux-x64.tar.gz
-          asset_name: sub_adjust-v${{ needs.validate_and_tag.outputs.version }}-linux-x64.tar.gz
+          asset_path: ./sub_adjust-${{ needs.validate_and_tag.outputs.version }}-linux-x64.tar.gz
+          asset_name: sub_adjust-${{ needs.validate_and_tag.outputs.version }}-linux-x64.tar.gz
           asset_content_type: application/gzip
 
       # Upload macOS binaries tar.gz file to release
@@ -218,8 +247,8 @@ jobs:
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release_step.outputs.upload_url }}
-          asset_path: ./sub_adjust-v${{ needs.validate_and_tag.outputs.version }}-macos-x64.tar.gz
-          asset_name: sub_adjust-v${{ needs.validate_and_tag.outputs.version }}-macos-x64.tar.gz
+          asset_path: ./sub_adjust-${{ needs.validate_and_tag.outputs.version }}-macos-x64.tar.gz
+          asset_name: sub_adjust-${{ needs.validate_and_tag.outputs.version }}-macos-x64.tar.gz
           asset_content_type: application/gzip
 
       # Upload Windows binaries zip file to release
@@ -227,8 +256,8 @@ jobs:
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release_step.outputs.upload_url }}
-          asset_path: ./sub_adjust-v${{ needs.validate_and_tag.outputs.version }}-win-x64.zip
-          asset_name: sub_adjust-v${{ needs.validate_and_tag.outputs.version }}-win-x64.zip
+          asset_path: ./sub_adjust-${{ needs.validate_and_tag.outputs.version }}-win-x64.zip
+          asset_name: sub_adjust-${{ needs.validate_and_tag.outputs.version }}-win-x64.zip
           asset_content_type: application/zip
 
       # Upload source zip file to release
@@ -236,6 +265,6 @@ jobs:
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release_step.outputs.upload_url }}
-          asset_path: ./sub_adjust-v${{ needs.validate_and_tag.outputs.version }}-source.zip
-          asset_name: sub_adjust-v${{ needs.validate_and_tag.outputs.version }}-source.zip
+          asset_path: ./sub_adjust-${{ needs.validate_and_tag.outputs.version }}-source.zip
+          asset_name: sub_adjust-${{ needs.validate_and_tag.outputs.version }}-source.zip
           asset_content_type: application/zip
