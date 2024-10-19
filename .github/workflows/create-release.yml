@@ -26,7 +26,7 @@ jobs:
       - name: Validate branch name and extract version
         id: validate_title
         run: |
-          branch_name="${{ github.ref_name }}"
+          branch_name="${{ github.head_ref }}"
 
           echo '1' $GITHUB_REF
           echo '2' ${{ github.ref }}
