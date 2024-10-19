@@ -25,6 +25,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.PAT_TOKEN }}
+          submodules: "recursive"
 
       - name: Validate branch name and extract version
         id: validate_title
@@ -75,6 +76,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: List all files in the workspace
+        run: |
+          echo "Workspace directory: $GITHUB_WORKSPACE"
+          ls -la $GITHUB_WORKSPACE
+          echo "Listing .github directory:"
+          ls -la $GITHUB_WORKSPACE/.github
+          echo "Listing workflows directory:"
+          ls -la $GITHUB_WORKSPACE/.github/workflows
+
       - name: Create release assets archive
         run: |
           output_zip="sub-adjust_${{ needs.validate_and_tag.outputs.version }}.zip"
