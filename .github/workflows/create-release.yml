@@ -32,12 +32,6 @@ jobs:
           branch_name="${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
           echo "Branch name: $branch_name"
 
-          echo '1' $GITHUB_REF
-          echo '2' $GITHUB_REF
-          echo '3' $GITHUB_REF_NAME
-          echo '4' $GITHUB_HEAD_REF
-          echo '5' $GITHUB_BASE_REF
-
           if [[ "$branch_name" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9-]+)?$ ]]; then
             version=$(echo "$branch_name" | grep -oE '^v[0-9]+\.[0-9]+\.[0-9]+')
             echo "version=$version" >> "$GITHUB_OUTPUT"
@@ -81,18 +75,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      # Read the file list from PackageAssets.txt and zip the specified files into one archive
+      - name: Zip release files
+        if: ${{ needs.validate_and_tag.outputs.version != '' }}
+        run: |
+          zip -r "sub-adjust_${{ needs.validate_and_tag.outputs.version }}.zip" $(cat .github/workflows/PackageAssets.txt)
 
-      # Create GitHub release
+      # Create a release and upload the zip file
       - name: Create GitHub release
-        id: create_release_step
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+        id: create_release
+        if: ${{ needs.validate_and_tag.outputs.version != '' }}
+        uses: actions/create-release@latest
         with:
           tag_name: ${{ needs.validate_and_tag.outputs.version }}
-          release_name: Release ${{ needs.validate_and_tag.outputs.version }}
+          release_name: ${{ needs.validate_and_tag.outputs.version }}
           body: |
             Automatically created release for version ${{ needs.validate_and_tag.outputs.version }}.
 
@@ -100,12 +96,14 @@ jobs:
             ${{ github.event.pull_request.body }}
           draft: false
           prerelease: false
+          commitish: ${{ github.sha }}
 
-      # Upload source zip file to release
-      - name: Upload source zip file to release
+      # Upload the zip file as the release asset
+      - name: Upload zip file to release
+        if: ${{ needs.validate_and_tag.outputs.version != '' }}
         uses: actions/upload-release-asset@v1
         with:
-          upload_url: ${{ steps.create_release_step.outputs.upload_url }}
-          asset_path: ./sub_adjust-${{ needs.validate_and_tag.outputs.version }}-source.zip
-          asset_name: sub_adjust-${{ needs.validate_and_tag.outputs.version }}-source.zip
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./sub-adjust_${{ needs.validate_and_tag.outputs.version }}.zip
+          asset_name: sub-adjust_${{ needs.validate_and_tag.outputs.version }}.zip
           asset_content_type: application/zip
