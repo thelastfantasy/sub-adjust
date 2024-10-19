@@ -6,7 +6,7 @@ from tkinter import (messagebox, scrolledtext)
 import webbrowser
 from docopt import docopt
 from loguru import logger
-from utils import center_window, custom_messagebox, display_errors
+from utils import center_window, custom_messagebox, display_errors, hide_console
 import queue
 
 __version__ = 'sub_adjust v1.2.0'
@@ -17,6 +17,7 @@ Usage:
   sub_adjust --offset <subtitle_shift_seconds> [--layers <layer_numbers>] [INPUTS...]
   sub_adjust --version
   sub_adjust (-h | --help)
+  sub_adjust
 
 Options:
   -t --offset <subtitle_shift_seconds>    字幕偏移量（单位：秒，1s = 1000ms），支持小数、负数、正数，负数为提前，正数为延后。
@@ -351,6 +352,7 @@ def main():
 
     # 否则启动GUI（没有提供 --offset 时）
     else:
+        hide_console()
         logger.info("正在启动GUI...")
         start_ui()
 

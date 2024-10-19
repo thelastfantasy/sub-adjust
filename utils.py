@@ -4,6 +4,16 @@ import winsound
 import tkinter as tk
 from tkinter import scrolledtext
 import chardet
+import sys
+
+def hide_console():
+    """在 Windows 下隐藏控制台窗口"""
+    if sys.platform == "win32":
+        import ctypes
+        whnd = ctypes.windll.kernel32.GetConsoleWindow()
+        if whnd != 0:
+            ctypes.windll.user32.ShowWindow(whnd, 0)
+            ctypes.windll.kernel32.CloseHandle(whnd)
 
 def detect_encoding(file_path):
     with open(file_path, 'rb') as f:
