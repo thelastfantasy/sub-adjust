@@ -2,9 +2,10 @@ name: Create Tag and Release
 
 on:
   pull_request:
-    types: [closed]
+    types: [closed, synchronize]
     branches:
       - main
+      - 1.2.0-release-2
 
 concurrency:
   group: create-tag-and-release-${{ github.ref }}
