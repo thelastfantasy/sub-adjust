@@ -9,6 +9,13 @@ if %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 
+REM Check and install pip
+where pip >nul 2>&1
+if %ERRORLEVEL% NEQ 0 (
+    echo pip未安装或未正确配置环境变量，请先安装pip并确保其路径已添加到环境变量中。
+    exit /b 1
+)
+
 REM Try install deps from requirements.txt
 pip install -r requirements.txt
 if %ERRORLEVEL% NEQ 0 (
