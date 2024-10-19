@@ -194,21 +194,84 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses:
+          actions/checkout@v3
 
+          # Tar Linux binaries
       - name: Tar Linux binaries
         if: runner.os == 'Linux'
         run: |
+          echo "Finding compiled binaries in dist directory:"
+          find "$GITHUB_WORKSPACE/dist" -type f -name "sub_adjust" -o -name "sub_converter"
+
+          # 检查是否找到编译后的文件
+          if [ ! -f "$GITHUB_WORKSPACE/dist/sub_adjust" ]; then
+            echo "Error: sub_adjust binary not found in dist/ directory"
+            exit 1
+          fi
+
+          if [ ! -f "$GITHUB_WORKSPACE/dist/sub_converter" ]; then
+            echo "Error: sub_converter binary not found in dist/ directory"
+            exit 1
+          fi
+
+          # 移动文件到 build 目录
+          mkdir -p "$GITHUB_WORKSPACE/build/linux"
+          mv "$GITHUB_WORKSPACE/dist/sub_adjust" "$GITHUB_WORKSPACE/build/linux/"
+          mv "$GITHUB_WORKSPACE/dist/sub_converter" "$GITHUB_WORKSPACE/build/linux/"
+
+          echo "Creating tarball for Linux binaries."
           tar -czvf "$GITHUB_WORKSPACE/sub_adjust-${{ needs.validate_and_tag.outputs.version }}-linux-x64.tar.gz" -C "$GITHUB_WORKSPACE/build/linux" .
 
+      # Tar macOS binaries
       - name: Tar macOS binaries
         if: runner.os == 'macOS'
         run: |
+          echo "Finding compiled binaries in dist directory:"
+          find "$GITHUB_WORKSPACE/dist" -type f -name "sub_adjust" -o -name "sub_converter"
+
+          # 检查是否找到编译后的文件
+          if [ ! -f "$GITHUB_WORKSPACE/dist/sub_adjust" ]; then
+            echo "Error: sub_adjust binary not found in dist/ directory"
+            exit 1
+          fi
+
+          if [ ! -f "$GITHUB_WORKSPACE/dist/sub_converter" ]; then
+            echo "Error: sub_converter binary not found in dist/ directory"
+            exit 1
+          fi
+
+          # 移动文件到 build 目录
+          mkdir -p "$GITHUB_WORKSPACE/build/macos"
+          mv "$GITHUB_WORKSPACE/dist/sub_adjust" "$GITHUB_WORKSPACE/build/macos/"
+          mv "$GITHUB_WORKSPACE/dist/sub_converter" "$GITHUB_WORKSPACE/build/macos/"
+
+          echo "Creating tarball for macOS binaries."
           tar -czvf "$GITHUB_WORKSPACE/sub_adjust-${{ needs.validate_and_tag.outputs.version }}-macos-x64.tar.gz" -C "$GITHUB_WORKSPACE/build/macos" .
 
+        # Zip Windows binaries
       - name: Zip Windows binaries
         if: runner.os == 'Windows'
         run: |
+          # 查找 Windows 编译结果
+          Write-Output "Finding compiled binaries in dist directory:"
+          if (-Not (Test-Path -Path "$env:GITHUB_WORKSPACE\dist\sub_adjust.exe")) {
+            Write-Output "Error: sub_adjust.exe binary not found in dist/ directory"
+            exit 1
+          }
+
+          if (-Not (Test-Path -Path "$env:GITHUB_WORKSPACE\dist\sub_converter.exe")) {
+            Write-Output "Error: sub_converter.exe binary not found in dist/ directory"
+            exit 1
+          }
+
+          # 确保存在 build/windows 目录并移动编译后的文件
+          mkdir -p "$env:GITHUB_WORKSPACE\build\windows"
+          Move-Item -Path "$env:GITHUB_WORKSPACE\dist\sub_adjust.exe" -Destination "$env:GITHUB_WORKSPACE\build\windows\"
+          Move-Item -Path "$env:GITHUB_WORKSPACE\dist\sub_converter.exe" -Destination "$env:GITHUB_WORKSPACE\build\windows\"
+
+          # 打包 Windows 二进制文件
+          Write-Output "Creating zip file for Windows binaries."
           Compress-Archive -Path "$env:GITHUB_WORKSPACE\build\windows\*" -DestinationPath "$env:GITHUB_WORKSPACE\sub_adjust-${{ needs.validate_and_tag.outputs.version }}-win-x64.zip"
         shell: pwsh
 
