@@ -7,3 +7,4 @@ start_sub_converter_windows.bat
 sub_adjust.py
 sub_converter.py
 utils.py
+requirements.txt
