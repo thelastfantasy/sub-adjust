@@ -26,13 +26,12 @@ jobs:
       - name: Validate PR title and extract version
         id: validate_title
         run: |
-          if [[ "${{ github.event.pull_request.title }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          if [[ "${{ github.event.pull_request.title }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
             version=$(echo "${{ github.event.pull_request.title }}" | grep -oE '^v[0-9]+\.[0-9]+\.[0-9]+')
             echo "version=$version" >> "$GITHUB_OUTPUT"
           else
             echo "PR title does not match the required format (vX.X.X)."
-            echo "version=" >> "$GITHUB_OUTPUT"  # Setting version to empty
-            exit 0  # Exit normally
+            exit 1  # Exit with failure
           fi
         shell: bash
 
