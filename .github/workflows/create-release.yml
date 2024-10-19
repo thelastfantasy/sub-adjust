@@ -49,13 +49,15 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
         include:
           - os: ubuntu-latest
             python-version: "3.x"
           - os: windows-latest
             python-version: "3.x"
             architecture: "x64"
+          - os: macos-latest
+            python-version: "3.x"
 
     steps:
       - name: Checkout code
@@ -67,18 +69,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
           architecture: ${{ matrix.architecture || '' }}
 
-      - name: Install pipreqs
-        run: |
-          pip install pipreqs
-
-      - name: Generate requirements.txt
-        run: |
-          pipreqs . --force
-
       - name: Install Dependencies
         run: |
-          if [ -f requirements.txt ]; then
-            pip install -r requirements.txt
+          if [ -f src/requirements.txt ]; then
+            pip install -r src/requirements.txt
           fi
 
       - name: Install PyInstaller
@@ -87,13 +81,22 @@ jobs:
 
       - name: Compile for ${{ matrix.os }}
         run: |
-          pyinstaller --onefile sub-adjust.py
+          cd src
+          pyinstaller --onefile sub_adjust.py
+          pyinstaller --onefile sub_converter.py
+          cd ..
           if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
             mkdir -p build/linux
-            mv dist/sub-adjust build/linux/
-          else
+            mv src/dist/sub_adjust build/linux/
+            mv src/dist/sub_converter build/linux/
+          elif [ "${{ matrix.os }}" == "windows-latest" ]; then
             mkdir -p build/windows
-            mv dist/sub-adjust.exe build/windows/
+            mv src/dist/sub_adjust.exe build/windows/
+            mv src/dist/sub_converter.exe build/windows/
+          elif [ "${{ matrix.os }}" == "macos-latest" ]; then
+            mkdir -p build/macos
+            mv src/dist/sub_adjust build/macos/
+            mv src/dist/sub_converter build/macos/
           fi
 
   # Job 3: Create release
@@ -106,20 +109,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Zip compiled Linux binaries
-      - name: Zip Linux binaries
+      # Tar compiled Linux binaries
+      - name: Tar Linux binaries
         run: |
-          zip -r "sub-adjust-v${{ needs.validate_and_tag.outputs.version }}-linux-x64.zip" build/linux
+          tar -czvf "sub_adjust-v${{ needs.validate_and_tag.outputs.version }}-linux-x64.tar.gz" -C build/linux .
+
+      # Tar compiled macOS binaries
+      - name: Tar macOS binaries
+        run: |
+          tar -czvf "sub_adjust-v${{ needs.validate_and_tag.outputs.version }}-macos-x64.tar.gz" -C build/macos .
 
       # Zip compiled Windows binaries
       - name: Zip Windows binaries
         run: |
-          zip -r "sub-adjust-v${{ needs.validate_and_tag.outputs.version }}-win-x64.zip" build/windows
+          zip -r "sub_adjust-v${{ needs.validate_and_tag.outputs.version }}-win-x64.zip" build/windows
 
       # Zip source code
       - name: Zip source code
         run: |
-          zip -r "sub-adjust-v${{ needs.validate_and_tag.outputs.version }}-source.zip" .
+          zip -r "sub_adjust-v${{ needs.validate_and_tag.outputs.version }}-source.zip" .
 
       # Create GitHub release
       - name: Create GitHub release
@@ -136,22 +144,31 @@ jobs:
           draft: false
           prerelease: false
 
-      # Upload Linux binaries zip file to release
-      - name: Upload Linux binaries zip file to release
+      # Upload Linux binaries tar.gz file to release
+      - name: Upload Linux binaries tar.gz file to release
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release_step.outputs.upload_url }}
-          asset_path: ./sub-adjust-v${{ needs.validate_and_tag.outputs.version }}-linux-x64.zip
-          asset_name: sub-adjust-v${{ needs.validate_and_tag.outputs.version }}-linux-x64.zip
-          asset_content_type: application/zip
+          asset_path: ./sub_adjust-v${{ needs.validate_and_tag.outputs.version }}-linux-x64.tar.gz
+          asset_name: sub_adjust-v${{ needs.validate_and_tag.outputs.version }}-linux-x64.tar.gz
+          asset_content_type: application/gzip
+
+      # Upload macOS binaries tar.gz file to release
+      - name: Upload macOS binaries tar.gz file to release
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release_step.outputs.upload_url }}
+          asset_path: ./sub_adjust-v${{ needs.validate_and_tag.outputs.version }}-macos-x64.tar.gz
+          asset_name: sub_adjust-v${{ needs.validate_and_tag.outputs.version }}-macos-x64.tar.gz
+          asset_content_type: application/gzip
 
       # Upload Windows binaries zip file to release
       - name: Upload Windows binaries zip file to release
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release_step.outputs.upload_url }}
-          asset_path: ./sub-adjust-v${{ needs.validate_and_tag.outputs.version }}-win-x64.zip
-          asset_name: sub-adjust-v${{ needs.validate_and_tag.outputs.version }}-win-x64.zip
+          asset_path: ./sub_adjust-v${{ needs.validate_and_tag.outputs.version }}-win-x64.zip
+          asset_name: sub_adjust-v${{ needs.validate_and_tag.outputs.version }}-win-x64.zip
           asset_content_type: application/zip
 
       # Upload source zip file to release
@@ -159,6 +176,6 @@ jobs:
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release_step.outputs.upload_url }}
-          asset_path: ./sub-adjust-v${{ needs.validate_and_tag.outputs.version }}-source.zip
-          asset_name: sub-adjust-v${{ needs.validate_and_tag.outputs.version }}-source.zip
+          asset_path: ./sub_adjust-v${{ needs.validate_and_tag.outputs.version }}-source.zip
+          asset_name: sub_adjust-v${{ needs.validate_and_tag.outputs.version }}-source.zip
           asset_content_type: application/zip

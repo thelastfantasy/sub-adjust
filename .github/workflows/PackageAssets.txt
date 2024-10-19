@@ -1,5 +1,9 @@
-install-dependencies-once.bat
-install-dependencies-once.sh
-start-linux.sh
-start-windows.bat
-sub-adjust.py
+install_dependencies_once.bat
+install_dependencies_once.sh
+start_sub_adjust_linux.sh
+start_sub_adjust_windows.bat
+start_sub_converter_linux.sh
+start_sub_converter_windows.bat
+sub_adjust.py
+sub_converter.py
+utils.py

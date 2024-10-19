@@ -2,7 +2,7 @@ import re
 import os
 import tkinter as tk
 from tkinter import filedialog, messagebox, scrolledtext
-from common_utils import detect_encoding, center_window,  custom_messagebox, display_errors
+from utils import detect_encoding, center_window,  custom_messagebox, display_errors
 
 # Constant for subtitle file extension
 SUBTITLE_EXTENSION = '.srt'

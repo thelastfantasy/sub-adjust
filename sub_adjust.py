@@ -5,18 +5,18 @@ from tkinter import (messagebox, scrolledtext)
 import webbrowser
 from docopt import docopt
 
-from common_utils import center_window, custom_messagebox, display_errors
+from utils import center_window, custom_messagebox, display_errors
 
-__version__ = 'sub-adjust v1.2.0'
+__version__ = 'sub_adjust v1.2.0'
 
 USAGE = f"""
 {__version__}
 
 Usage:
-  sub-adjust --offset <subtitle_shift_seconds> [--file <inputfile>] [--layers <layer_numbers>]
-  sub-adjust --files <inputfiles>... [--layers <layer_numbers>]
-  sub-adjust --version
-  sub-adjust
+  sub_adjust --offset <subtitle_shift_seconds> [--file <inputfile>] [--layers <layer_numbers>]
+  sub_adjust --files <inputfiles>... [--layers <layer_numbers>]
+  sub_adjust --version
+  sub_adjust
 
 Options:
   -t --offset <subtitle_shift_seconds>    字幕偏移量（单位：秒，1s = 1000ms），支持小数、负数、正数，负数为提前，正数为延后。此参数不存在时将不会进入命令行模式，而是进入图形界面
@@ -28,24 +28,24 @@ Options:
 
 Examples (二进制版本):
   # 将字幕提前2.5秒
-  sub-adjust --offset -2.5 --file example.ass
+  sub_adjust --offset -2.5 --file example.ass
   
   # 将多个字幕文件延后3秒
-  sub-adjust --offset 3 --files "example.ass" "e:\sub-adjust\example.srt"
+  sub_adjust --offset 3 --files "example.ass" "e:\sub-adjust\example.srt"
   
   # 显示版本信息
-  sub-adjust --version
+  sub_adjust --version
 
 
 Examples (Python运行源码):
   # 将字幕提前2.5秒
-  python sub-adjust.py --offset -2.5 --file example.ass
+  python sub_adjust.py --offset -2.5 --file example.ass
   
   # 将多个字幕文件延后3秒
-  python sub-adjust.py --offset 3 --files "example.ass" "e:\sub-adjust\example.srt"
+  python sub_adjust.py --offset 3 --files "example.ass" "e:\sub-adjust\example.srt"
   
   # 显示版本信息
-  python sub-adjust.py --version
+  python sub_adjust.py --version
 """
 
 
