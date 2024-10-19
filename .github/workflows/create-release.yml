@@ -88,6 +88,8 @@ jobs:
       - name: Create GitHub release
         id: create_release_step
         uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
         with:
           tag_name: ${{ needs.validate_and_tag.outputs.version }}
           release_name: Release ${{ needs.validate_and_tag.outputs.version }}
