@@ -3,6 +3,7 @@ import re
 import threading
 import tkinter as tk
 from tkinter import (messagebox, scrolledtext)
+from typing import List, Optional
 import webbrowser
 from docopt import docopt
 from loguru import logger
@@ -174,7 +175,43 @@ def process_ass_ssa_file(filepath, adjusted_shift_value, layers):
         if is_cmd_mode:
             logger.error(f"错误处理文件 {filepath}: {str(e)}")
         return False, str(e)
+    
+def shift_times_in_filelist(filelist: Optional[List[str]], shift_value: float, layers, queue):
+    total_files = len(filelist)
+    success_count = 0
+    failure_count = 0
+    failure_reasons = []
 
+    for filepath in filelist:
+        if filepath.endswith(".ass") or filepath.endswith(".ssa"):
+            success, reason = process_ass_ssa_file(filepath, shift_value, layers)
+        elif filepath.endswith(".srt"):
+            success, reason = process_srt_file(filepath, shift_value)
+        
+        if success:
+            success_count += 1
+        else:
+            failure_count += 1
+            failure_reasons.append(f"{filepath}: {reason}")
+
+    result_message = (
+        f"运行完毕。\n"
+        f"共处理 {total_files} 个文件。\n"
+        f"成功处理 {success_count} 个文件。\n"
+        f"失败处理 {failure_count} 个文件。\n"
+    )
+
+    if failure_count > 0:
+        result_message += "\n失败原因:\n" + "\n".join(failure_reasons)
+        queue.put(result_message)
+    else:
+        queue.put(result_message)
+
+    if is_cmd_mode:
+        log_result_fn = logger.info if success_count > 0 else logger.error
+        log_result_fn(f"\n\n{result_message}")
+
+    
 def shift_times_in_directory(directory, shift_value, shift_direction, layer_numbers, queue):
     if shift_direction is None:
         shift_direction = "delay"
@@ -205,6 +242,7 @@ def shift_times_in_directory(directory, shift_value, shift_direction, layer_numb
             failure_reasons.append(f"{file}: {reason}")
 
     result_message = (
+        f"运行完毕。\n"
         f"共处理 {total_files} 个文件。\n"
         f"成功处理 {success_count} 个文件。\n"
         f"失败处理 {failure_count} 个文件。\n"
@@ -214,6 +252,10 @@ def shift_times_in_directory(directory, shift_value, shift_direction, layer_numb
         result_message += "\n失败原因:\n" + "\n".join(failure_reasons)
 
     queue.put(result_message)
+
+    if is_cmd_mode:
+        log_result_fn = logger.info if success_count > 0 else logger.error
+        log_result_fn(f"\n\n{result_message}")
 
 def open_mail(event=None):
     webbrowser.open("mailto:i@kayanoai.net")
@@ -325,7 +367,7 @@ def main():
     # 使用 options_first=True 确保没有参数时不会直接触发 Usage 输出
     args = docopt(USAGE, version=__version__, options_first=True)
 
-    input_files = args["INPUTS"]
+    input_files: Optional[List[str]] = args["INPUTS"]
 
     # 如果用户请求版本信息，显示版本信息
     if args["--version"]:
@@ -340,11 +382,7 @@ def main():
         shift_value = float(args["--offset"]) * 1000
         layer_numbers = parse_layers(args["--layers"])
         if input_files:
-            for filepath in input_files:
-                if filepath.endswith(".ass") or filepath.endswith(".ssa"):
-                    process_ass_ssa_file(filepath, shift_value, layer_numbers)
-                elif filepath.endswith(".srt"):
-                    process_srt_file(filepath, shift_value)
+            shift_times_in_filelist(input_files, shift_value, layer_numbers, queue.Queue())
         else:
             shift_times_in_directory(os.getcwd(), shift_value, None, layer_numbers, queue.Queue())
 
