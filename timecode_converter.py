@@ -154,7 +154,7 @@ def on_convert():
     root.after(100, check_queue)
 
 def open_mail(event=None):
-    webbrowser.open("mailto:i@kayanoai.net")
+    webbrowser.open("https://github.com/thelastfantasy/sub-adjust/issues")
 
 def show_usage(root):
     usage_window = tk.Toplevel(root)
@@ -209,7 +209,7 @@ target_framerate_combo.grid(row=3, column=3, padx=10, pady=5)
 tk.Button(root, text="转换", command=on_convert).grid(row=4, columnspan=4, pady=10)
 
 # Contact author
-contact_label = tk.Label(root, text="联系作者: i@kayanoai.net", fg="blue", cursor="hand2")
+contact_label = tk.Label(root, text="反馈", fg="blue", cursor="hand2")
 contact_label.grid(row=5, column=0, columnspan=2, padx=10, pady=10, sticky=tk.W)
 contact_label.bind("<Button-1>", open_mail)
 contact_label.bind("<Enter>", lambda e: contact_label.config(fg="red"))

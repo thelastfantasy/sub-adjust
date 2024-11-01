@@ -258,7 +258,7 @@ def shift_times_in_directory(directory, shift_value, shift_direction, layer_numb
         log_result_fn(f"\n\n{result_message}")
 
 def open_mail(event=None):
-    webbrowser.open("mailto:i@kayanoai.net")
+    webbrowser.open("https://github.com/thelastfantasy/sub-adjust/issues")
 
 def show_usage(root):
     usage_window = tk.Toplevel(root)
@@ -350,7 +350,7 @@ def start_ui():
     tk.Button(root, text="处理", command=on_submit).grid(row=5, columnspan=3, pady=10)
 
     # 联系作者
-    contact_label = tk.Label(root, text="联系作者: i@kayanoai.net", fg="blue", cursor="hand2")
+    contact_label = tk.Label(root, text="反馈", fg="blue", cursor="hand2")
     contact_label.grid(row=6, column=0, columnspan=3, padx=10, pady=10, sticky=tk.W)
     contact_label.bind("<Button-1>", open_mail)
     contact_label.bind("<Enter>", lambda e: contact_label.config(fg="red"))
