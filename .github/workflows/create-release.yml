@@ -2,18 +2,19 @@ name: Create Tag and Release
 
 on:
   pull_request:
-    types: [closed]
+    types: [opened, reopened, synchronize, edited] # 添加更多触发类型以便调试
     branches:
       - main
+      - v1.3.0
 
 concurrency:
   group: create-tag-and-release-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # Job 1: Validate the PR and extract version
   validate_and_tag:
-    if: github.event.pull_request.merged == true
+    # 暂时注释掉 merged 条件以便调试
+    # if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
 
     outputs:
@@ -29,17 +30,35 @@ jobs:
       - name: Validate branch name and extract version
         id: validate_title
         run: |
-          branch_name="${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
-          branch_name=$(echo "$branch_name" | tr -d '[:space:]')
-          echo "Branch name: $branch_name"
+          # 打印环境变量以进行调试
+          echo "GITHUB_HEAD_REF: ${GITHUB_HEAD_REF}"
+          echo "GITHUB_REF: ${GITHUB_REF}"
+          echo "GITHUB_EVENT_NAME: ${GITHUB_EVENT_NAME}"
+          echo "GITHUB_BASE_REF: ${GITHUB_BASE_REF}"
 
-          if [[ "$branch_name" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9_-.]+)?$ ]]; then
+          # 设置分支名
+          branch_name="${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
+          echo "Initial branch_name: $branch_name"
+
+          # 移除空白字符并打印结果
+          branch_name=$(echo "$branch_name" | tr -d '[:space:]')
+          echo "Cleaned branch_name: $branch_name"
+
+          # 使用 xxd 显示确切的字符
+          echo "Branch name hex dump:"
+          echo -n "$branch_name" | xxd
+
+          # 测试正则表达式匹配
+          if echo "$branch_name" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9._-]+)?$'; then
             version=$(echo "$branch_name" | grep -oE '^v[0-9]+\.[0-9]+\.[0-9]+')
             echo "version=$version" >> "$GITHUB_OUTPUT"
             echo "Matched version: $version"
+            echo "Full branch name matched the pattern successfully"
           else
-            echo "Branch name does not match the required format (vX.X.X or vX.X.X-suffix)."
-            exit 1 # Exit with failure
+            echo "ERROR: Branch name '$branch_name' does not match the pattern"
+            echo "Expected format: vX.X.X or vX.X.X-suffix"
+            echo "Where X is a number and suffix can contain letters, numbers, underscores, hyphens and dots"
+            exit 1
           fi
         shell: bash
 
@@ -47,18 +66,22 @@ jobs:
         if: ${{ steps.validate_title.outputs.version != '' }}
         run: |
           version=${{ steps.validate_title.outputs.version }}
+          echo "Creating tag for version: $version"
 
           # 检查本地是否存在该 Tag
           tag_exists=$(git tag -l "$version")
+          echo "Tag exists locally: $tag_exists"
 
           if [ -z "$tag_exists" ]; then
-            # 本地不存在该 Tag，创建 Tag
+            echo "Creating new local tag..."
             git tag "$version"
             
             # 检查远程是否存在该 Tag
             remote_tag_exists=$(git ls-remote --tags origin | grep "refs/tags/$version" || true)
+            echo "Tag exists in remote: $remote_tag_exists"
+            
             if [ -z "$remote_tag_exists" ]; then
-              # 如果远程也不存在，推送 Tag
+              echo "Pushing tag to remote..."
               git push origin "$version"
               echo "Tag $version created and pushed successfully."
             else
@@ -81,11 +104,25 @@ jobs:
           output_zip="sub-adjust_${{ steps.validate_title.outputs.version }}.zip"
           assets_file="$GITHUB_WORKSPACE/.github/workflows/PackageAssets.txt"
 
-          # 创建包含指定文件的压缩包
-          while IFS= read -r asset; do
-            echo "Adding asset: $asset"
-            zip -j "$output_zip" "$GITHUB_WORKSPACE/$asset"
-          done < "$assets_file"
+          echo "Creating zip file: $output_zip"
+          echo "Assets file path: $assets_file"
+
+          if [ -f "$assets_file" ]; then
+            echo "Content of PackageAssets.txt:"
+            cat "$assets_file"
+            
+            # 创建包含指定文件的压缩包
+            while IFS= read -r asset; do
+              echo "Adding asset: $asset"
+              if [ -f "$GITHUB_WORKSPACE/$asset" ]; then
+                zip -j "$output_zip" "$GITHUB_WORKSPACE/$asset"
+              else
+                echo "Warning: File not found - $GITHUB_WORKSPACE/$asset"
+              fi
+            done < "$assets_file"
+          else
+            echo "Warning: Assets file not found at $assets_file"
+          fi
         shell: bash
 
       # Create a release and upload the zip file
