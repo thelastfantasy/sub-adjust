@@ -4,7 +4,10 @@ start_sub_adjust_linux.sh
 start_sub_adjust_windows.bat
 start_sub_converter_linux.sh
 start_sub_converter_windows.bat
+start_timecode_converter_linux.sh
+start_timecode_converter_windows.bat
 sub_adjust.py
 sub_converter.py
+timecode_converter.py
 utils.py
 requirements.txt
