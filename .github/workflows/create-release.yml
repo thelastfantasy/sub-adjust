@@ -2,10 +2,11 @@ name: Create Tag and Release
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize, edited] # 添加更多触发类型以便调试
+    # types: [opened, reopened, synchronize, edited] # 添加更多触发类型以便调试
+    types: [closed]
     branches:
       - main
-      - v1.3.0
+      # - v1.3.0
 
 concurrency:
   group: create-tag-and-release-${{ github.ref }}
@@ -14,7 +15,7 @@ concurrency:
 jobs:
   validate_and_tag:
     # 暂时注释掉 merged 条件以便调试
-    # if: github.event.pull_request.merged == true
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
 
     outputs:
