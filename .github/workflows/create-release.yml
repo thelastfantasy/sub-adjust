@@ -32,7 +32,7 @@ jobs:
           branch_name="${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
           echo "Branch name: $branch_name"
 
-          if [[ "$branch_name" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9-]+)?$ ]]; then
+          if [[ "$branch_name" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9-_]+)?$ ]]; then
             version=$(echo "$branch_name" | grep -oE '^v[0-9]+\.[0-9]+\.[0-9]+')
             echo "version=$version" >> "$GITHUB_OUTPUT"
             echo "Matched version: $version"
