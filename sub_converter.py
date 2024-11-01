@@ -79,7 +79,7 @@ Style: Default,方正隶变_GBK,48,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,-
         self.context_menu.add_command(label="删除", command=self.clear_all)
 
         # Author contact label
-        contact_label = tk.Label(root, text="联系作者: i@kayanoai.net", fg="blue", cursor="hand2")
+        contact_label = tk.Label(root, text="反馈", fg="blue", cursor="hand2")
         contact_label.pack(anchor='w', pady=(0, 0))  # Remove unnecessary padding at the bottom
         contact_label.bind("<Button-1>", self.open_email)
         contact_label.bind("<Enter>", lambda e: contact_label.config(fg="red"))
@@ -87,7 +87,7 @@ Style: Default,方正隶变_GBK,48,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,-
 
     def open_email(self, event=None):
         import webbrowser
-        webbrowser.open("mailto:i@kayanoai.net")
+        webbrowser.open("https://github.com/thelastfantasy/sub-adjust/issues")
 
     def show_context_menu(self, event):
         try:
