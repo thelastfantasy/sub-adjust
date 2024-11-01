@@ -49,7 +49,7 @@ jobs:
           echo -n "$branch_name" | xxd
 
           # 测试正则表达式匹配
-          if [[ "$branch_name" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9_-.]+)?$ ]]; then
+          if echo "$branch_name" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9_-.]+)?$'; then
             version=$(echo "$branch_name" | grep -oE '^v[0-9]+\.[0-9]+\.[0-9]+')
             echo "version=$version" >> "$GITHUB_OUTPUT"
             echo "Matched version: $version"
